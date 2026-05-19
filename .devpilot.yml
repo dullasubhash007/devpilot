@@ -1,0 +1,87 @@
+# =============================================================================
+# DevPilot Configuration
+# =============================================================================
+# Place this file at the root of your repository to configure DevPilot's
+# behavior for this repo. Settings here override global defaults set in
+# Azure App Configuration.
+#
+# Schema reference: docs/devpilot-yml-schema.md
+# =============================================================================
+
+devpilot:
+  # ------------------------------------------------------------------
+  # PREDICT AGENT — Scores failure probability before the pipeline runs
+  # ------------------------------------------------------------------
+  predict:
+    enabled: true
+    failure_threshold: 70        # Warn (yellow check) if risk score > 70
+    block_threshold: 90          # Block merge (red check) if risk score > 90
+    features:                    # Which signals to feed the ML model
+      - diff_size
+      - files_changed
+      - test_history
+      - author_history
+      - branch_age
+
+  # ------------------------------------------------------------------
+  # DIAGNOSE AGENT — Root cause analysis on pipeline failure
+  # ------------------------------------------------------------------
+  diagnose:
+    enabled: true
+    model: gpt-4o-mini           # Options: gpt-4o-mini, gpt-4o
+    max_log_lines: 500           # Lines of log context fed to LLM
+    post_pr_comment: true        # Comment on the PR with diagnosis
+    include_fix_suggestion: true # LLM suggests a code fix
+
+  # ------------------------------------------------------------------
+  # ACT AGENT — Autonomous actions based on diagnosis
+  # ------------------------------------------------------------------
+  act:
+    enabled: true
+    auto_create_issue: true      # Create GitHub Issue with diagnosis
+    auto_adjust_gates: false     # If true, dynamically tighten/loosen gates
+    suggest_deploy_strategy: true # Recommend canary/blue-green/rolling
+
+  # ------------------------------------------------------------------
+  # QUALITY GATES — Hard rules that affect merge eligibility
+  # ------------------------------------------------------------------
+  quality_gates:
+    block_merge_above_risk: 90   # Risk score above which merge is blocked
+    require_human_approval_on_act: true  # Act agent needs human approval
+
+  # ------------------------------------------------------------------
+  # NOTIFICATIONS — Where DevPilot surfaces its output in GitHub
+  # ------------------------------------------------------------------
+  notify:
+    pr_comment: true             # Rich markdown comment on PR
+    checks_api: true             # Show in PR Checks tab (with annotations)
+    job_summary: true            # Write to GitHub Actions Job Summary
+    issue_on_failure: true       # Create issue when pipeline fails
+
+  # ------------------------------------------------------------------
+  # ENVIRONMENTS — Per-environment overrides (optional)
+  # ------------------------------------------------------------------
+  environments:
+    production:
+      quality_gates:
+        block_merge_above_risk: 70   # Stricter for production
+      act:
+        require_human_approval_on_act: true
+    staging:
+      quality_gates:
+        block_merge_above_risk: 85
+    development:
+      quality_gates:
+        block_merge_above_risk: 95   # More lenient
+
+  # ------------------------------------------------------------------
+  # EXCLUSIONS — Paths/branches DevPilot should ignore
+  # ------------------------------------------------------------------
+  exclude:
+    paths:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/**"
+    branches:
+      - "dependabot/**"
+      - "renovate/**"

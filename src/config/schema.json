@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DevPilot Configuration",
+  "description": "Schema for .devpilot.yml — the per-repo configuration file for DevPilot",
+  "type": "object",
+  "required": ["devpilot"],
+  "properties": {
+    "devpilot": {
+      "type": "object",
+      "properties": {
+        "predict": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "failure_threshold": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "block_threshold": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["diff_size", "files_changed", "test_history", "author_history", "branch_age"]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "diagnose": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "model": { "type": "string", "enum": ["gpt-4o-mini", "gpt-4o"] },
+            "max_log_lines": { "type": "integer", "minimum": 50, "maximum": 5000 },
+            "post_pr_comment": { "type": "boolean" },
+            "include_fix_suggestion": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "act": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "auto_create_issue": { "type": "boolean" },
+            "auto_adjust_gates": { "type": "boolean" },
+            "suggest_deploy_strategy": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "quality_gates": {
+          "type": "object",
+          "properties": {
+            "block_merge_above_risk": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "require_human_approval_on_act": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "notify": {
+          "type": "object",
+          "properties": {
+            "pr_comment": { "type": "boolean" },
+            "checks_api": { "type": "boolean" },
+            "job_summary": { "type": "boolean" },
+            "issue_on_failure": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "environments": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "exclude": {
+          "type": "object",
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string" } },
+            "branches": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
