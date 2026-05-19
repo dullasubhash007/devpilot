@@ -1,0 +1,24 @@
+environment = "dev"
+location    = "eastus2"
+project     = "devpilot"
+
+vnet_address_space = ["10.10.0.0/16"]
+
+cosmos_serverless = true
+functions_sku     = "Y1"
+
+openai_model_deployments = {
+  "gpt-4o-mini" = {
+    model_name    = "gpt-4o-mini"
+    model_version = "2024-07-18"
+    sku_name      = "GlobalStandard"
+    capacity      = 10
+  }
+}
+
+tags = {
+  project    = "devpilot"
+  managed_by = "terraform"
+  hackathon  = "ms-build-ai-2026"
+  owner      = "devpilot-team"
+}
