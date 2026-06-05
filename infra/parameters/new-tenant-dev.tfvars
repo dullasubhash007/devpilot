@@ -1,11 +1,11 @@
 environment = "dev"
-location    = "westus2"
+location    = "eastus2"
 project     = "devpilot"
 
 vnet_address_space = ["10.10.0.0/16"]
 
 cosmos_serverless = true
-functions_sku     = "Y1"
+functions_sku     = "B1"   # B1 Basic - Y1 Consumption has quota=0 on new subscriptions
 
 # Deployment note: leave model deployments empty if the subscription does not
 # have OpenAI/AIServices quota in the chosen region. Deploy manually via portal

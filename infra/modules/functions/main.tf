@@ -17,7 +17,7 @@ variable "cosmos_endpoint" { type = string }
 variable "sku" { type = string }
 variable "tags" { type = map(string) }
 
-# --- App Service Plan (Consumption Y1) ---
+# --- App Service Plan (SKU: Y1 Consumption or B1 Basic) ---
 resource "azurerm_service_plan" "func" {
   name                = "asp-${var.name_prefix}-${var.suffix}"
   resource_group_name = var.resource_group_name

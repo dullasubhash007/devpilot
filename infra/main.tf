@@ -187,6 +187,13 @@ module "apim" {
 # RBAC — Grant Functions managed identity access to dependencies
 # =============================================================================
 
+# Functions → Storage (Blob Data Contributor — needed for B1/dedicated plan with managed identity)
+resource "azurerm_role_assignment" "functions_storage" {
+  scope                = module.data.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.functions.principal_id
+}
+
 # Functions → Key Vault (Secrets User)
 resource "azurerm_role_assignment" "functions_kv" {
   scope                = module.keyvault.id

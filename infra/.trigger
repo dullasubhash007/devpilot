@@ -1,1 +1,1 @@
-﻿2026-06-05 17:09:32 - location westus2 fix
+﻿2026-06-05 17:37:12 - clean slate B1 eastus2
