@@ -87,6 +87,20 @@ resource "azurerm_cosmosdb_sql_container" "this" {
   partition_key_paths = [each.value]
 }
 
+# --- Storage Queues for agent job routing ---
+resource "azurerm_storage_queue" "predict"  {
+  name                 = "predict-jobs"
+  storage_account_name = module.storage.name
+}
+resource "azurerm_storage_queue" "diagnose" {
+  name                 = "diagnose-jobs"
+  storage_account_name = module.storage.name
+}
+resource "azurerm_storage_queue" "act"      {
+  name                 = "act-jobs"
+  storage_account_name = module.storage.name
+}
+
 output "storage_account_id"   { value = module.storage.resource_id }
 output "storage_account_name" { value = module.storage.name }
 output "cosmos_id"            { value = azurerm_cosmosdb_account.this.id }

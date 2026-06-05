@@ -15,8 +15,16 @@ output "resource_groups" {
 }
 
 output "function_app_webhook_url" {
-  description = "URL to register in GitHub App webhook settings"
-  value       = "${module.apim.gateway_hostname}/devpilot/webhook"
+  description = "Webhook URL to register in GitHub App settings"
+  value = (var.use_container_apps
+    ? module.container_apps[0].webhook_url
+    : "${module.apim[0].gateway_hostname}/devpilot/webhook"
+  )
+}
+
+output "container_apps_webhook_url" {
+  description = "Azure Container Apps webhook URL (when use_container_apps=true)"
+  value       = var.use_container_apps ? module.container_apps[0].webhook_url : null
 }
 
 output "ai_foundry_endpoint" {

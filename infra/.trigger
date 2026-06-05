@@ -1,1 +1,1 @@
-﻿2026-06-05 17:37:12 - clean slate B1 eastus2
+﻿2026-06-05 18:00:12 - container apps switch

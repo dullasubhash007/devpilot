@@ -35,6 +35,10 @@ output "application_insights_instrumentation_key" {
   value     = module.app_insights.instrumentation_key
   sensitive = true
 }
+output "log_analytics_workspace_primary_key" {
+  value     = azurerm_log_analytics_workspace.this.primary_shared_key
+  sensitive = true
+}
 output "application_insights_connection_string" {
   value     = module.app_insights.connection_string
   sensitive = true

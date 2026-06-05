@@ -4,8 +4,10 @@ project     = "devpilot"
 
 vnet_address_space = ["10.10.0.0/16"]
 
-cosmos_serverless = true
-functions_sku     = "B1"   # B1 Basic - Y1 Consumption has quota=0 on new subscriptions
+cosmos_serverless   = true
+functions_sku       = "Y1"       # unused when use_container_apps=true
+use_container_apps  = true       # Free Trial compatible (replaces Functions + APIM)
+container_image     = "mcr.microsoft.com/devcontainers/python:3.11"  # placeholder; replace with ACR image after build
 
 # Deployment note: leave model deployments empty if the subscription does not
 # have OpenAI/AIServices quota in the chosen region. Deploy manually via portal

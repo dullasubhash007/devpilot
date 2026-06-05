@@ -1,5 +1,10 @@
-# Azure Functions runtime
+# Azure Functions runtime (kept for local dev / original MCAPS deployment)
 azure-functions>=1.21.0
+
+# Web server (Azure Container Apps deployment)
+fastapi>=0.111.0
+uvicorn>=0.29.0
+azure-storage-queue>=12.10.0
 
 # Azure SDKs
 azure-identity>=1.17.0

@@ -80,22 +80,15 @@ jobs:
       - name: Import pre-existing resource groups
         run: |
           SUB="${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          ENVS=("ai" "compute" "data" "monitoring" "networking" "security")
-          for env_name in "${ENVS[@]}"; do
-            RG="rg-devpilot-dev-${env_name}"
-            # Try the naming pattern used by the resource-groups module
+          for env_name in ai compute data monitoring networking security; do
             for name in "rg-devpilot-${env_name}-dev" "rg-devpilot-dev-${env_name}"; do
               RG_ID="/subscriptions/${SUB}/resourceGroups/${name}"
               TF_ADDR="module.resource_groups.module.rg[\"${env_name}\"].azapi_resource.this"
-              # Check if already in state
               if terraform state show "${TF_ADDR}" > /dev/null 2>&1; then
                 echo "✅ ${name} already in state"
-              else
-                # Check if it exists in Azure
-                if az group show --name "${name}" --output none 2>/dev/null; then
-                  echo "📥 Importing ${name}..."
-                  terraform import "${TF_ADDR}" "${RG_ID}" || true
-                fi
+              elif az group show --name "${name}" --output none 2>/dev/null; then
+                echo "📥 Importing ${name}..."
+                terraform import "${TF_ADDR}" "${RG_ID}" || true
               fi
             done
           done

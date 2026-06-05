@@ -71,9 +71,21 @@ variable "cosmos_serverless" {
 }
 
 variable "functions_sku" {
-  description = "Azure Functions plan SKU"
+  description = "Azure Functions plan SKU (used when use_container_apps=false)"
   type        = string
   default     = "Y1" # Consumption
+}
+
+variable "use_container_apps" {
+  description = "Use Azure Container Apps instead of Azure Functions + APIM (required for Free Trial subscriptions)"
+  type        = bool
+  default     = false
+}
+
+variable "container_image" {
+  description = "Container image for Container Apps deployment"
+  type        = string
+  default     = "mcr.microsoft.com/devcontainers/python:3.11"
 }
 
 # --- GitHub App ---

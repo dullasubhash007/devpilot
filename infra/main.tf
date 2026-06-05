@@ -148,10 +148,12 @@ module "data" {
 }
 
 # =============================================================================
-# COMPUTE — Azure Functions + APIM
+# COMPUTE — Azure Functions + APIM  (use_container_apps = false)
+#         — Azure Container Apps    (use_container_apps = true, Free Trial safe)
 # =============================================================================
 
 module "functions" {
+  count  = var.use_container_apps ? 0 : 1
   source = "./modules/functions"
 
   resource_group_name        = module.resource_groups.compute_rg_name
@@ -171,55 +173,97 @@ module "functions" {
 }
 
 module "apim" {
+  count  = var.use_container_apps ? 0 : 1
   source = "./modules/apim"
 
   resource_group_name = module.resource_groups.compute_rg_name
-  # APIM is pinned to eastus2 to avoid 40+ minute destroy/recreate when
-  # workload region changes. Cross-region calls to the function app are fine.
   location            = "eastus2"
   name_prefix         = local.name_prefix
   suffix              = local.suffix
-  function_app_url    = module.functions.default_hostname
+  function_app_url    = module.functions[0].default_hostname
   tags                = local.common_tags
 }
 
+module "container_apps" {
+  count      = var.use_container_apps ? 1 : 0
+  source     = "./modules/container-apps"
+  depends_on = [module.resource_groups, module.monitoring]
+
+  resource_group_name                    = module.resource_groups.compute_rg_name
+  resource_group_id                      = module.resource_groups.compute_rg_id
+  location                               = var.location
+  name_prefix                            = local.name_prefix
+  suffix                                 = local.suffix
+  log_analytics_workspace_id             = module.monitoring.log_analytics_workspace_id
+  log_analytics_workspace_key            = module.monitoring.log_analytics_workspace_primary_key
+  storage_account_name                   = module.data.storage_account_name
+  app_config_endpoint                    = module.app_configuration.endpoint
+  key_vault_uri                          = module.keyvault.vault_uri
+  ai_foundry_endpoint                    = module.ai_foundry.ai_services_endpoint
+  cosmos_endpoint                        = module.data.cosmos_endpoint
+  applicationinsights_connection_string  = module.monitoring.application_insights_connection_string
+  container_image                        = var.container_image
+  tags                                   = local.common_tags
+}
+
 # =============================================================================
-# RBAC — Grant Functions managed identity access to dependencies
+# RBAC — Grant compute managed identity access to dependencies
 # =============================================================================
 
-# Functions → Storage (Blob Data Contributor — needed for B1/dedicated plan with managed identity)
+locals {
+  # Collect principal IDs from whichever compute module is active
+  compute_principal_ids = var.use_container_apps ? toset([
+    module.container_apps[0].webhook_principal_id,
+    module.container_apps[0].workers_principal_id,
+  ]) : toset([module.functions[0].principal_id])
+}
+
+# Compute → Storage (Blob Data Contributor)
 resource "azurerm_role_assignment" "functions_storage" {
+  for_each             = local.compute_principal_ids
   scope                = module.data.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
-  principal_id         = module.functions.principal_id
+  principal_id         = each.value
 }
 
-# Functions → Key Vault (Secrets User)
+# Compute → Storage (Queue Data Contributor — needed for Container Apps worker)
+resource "azurerm_role_assignment" "compute_queue" {
+  for_each             = var.use_container_apps ? local.compute_principal_ids : toset([])
+  scope                = module.data.storage_account_id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = each.value
+}
+
+# Compute → Key Vault (Secrets User)
 resource "azurerm_role_assignment" "functions_kv" {
+  for_each             = local.compute_principal_ids
   scope                = module.keyvault.id
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = module.functions.principal_id
+  principal_id         = each.value
 }
 
-# Functions → App Configuration (Data Reader)
+# Compute → App Configuration (Data Reader)
 resource "azurerm_role_assignment" "functions_appcfg" {
+  for_each             = local.compute_principal_ids
   scope                = module.app_configuration.id
   role_definition_name = "App Configuration Data Reader"
-  principal_id         = module.functions.principal_id
+  principal_id         = each.value
 }
 
-# Functions → Azure AI Foundry AI Services (Cognitive Services User)
+# Compute → Azure AI Foundry AI Services (Cognitive Services User)
 resource "azurerm_role_assignment" "functions_openai" {
+  for_each             = local.compute_principal_ids
   scope                = module.ai_foundry.ai_services_id
   role_definition_name = "Cognitive Services User"
-  principal_id         = module.functions.principal_id
+  principal_id         = each.value
 }
 
-# Functions → Cosmos DB (Built-in Data Contributor — data plane role)
+# Compute → Cosmos DB (Built-in Data Contributor — data plane role)
+# For multi-principal we use a single assignment on the first principal
 resource "azurerm_cosmosdb_sql_role_assignment" "functions_cosmos" {
   resource_group_name = module.resource_groups.data_rg_name
   account_name        = module.data.cosmos_name
   role_definition_id  = "${module.data.cosmos_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
   scope               = module.data.cosmos_id
-  principal_id        = module.functions.principal_id
+  principal_id        = tolist(local.compute_principal_ids)[0]
 }
