@@ -1,0 +1,9 @@
+# Backend config — Azure subscription 1 (new tenant: aihackathon26outlook.onmicrosoft.com)
+# Tenant  : 8da0d0be-1fb3-449d-a94f-a906089ba585
+# Sub     : 71548670-1c08-45be-a4d8-5fccfe411f75
+resource_group_name  = "rg-devpilot-tfstate"
+storage_account_name = "stdevpilotlv5qsp"
+container_name       = "tfstate"
+key                  = "devpilot.tfstate"
+subscription_id      = "71548670-1c08-45be-a4d8-5fccfe411f75"
+tenant_id            = "8da0d0be-1fb3-449d-a94f-a906089ba585"

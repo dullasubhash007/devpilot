@@ -1,6 +1,6 @@
-name: "Terraform Plan"
+﻿name: "Terraform Plan"
 
-# Runs on every PR that touches infra/ — posts plan as a PR comment.
+# Runs on every PR that touches infra/ â€” posts plan as a PR comment.
 # Uses OIDC (no stored secrets). Backend config supplied via environment secret.
 
 on:
@@ -31,11 +31,11 @@ jobs:
         working-directory: infra
 
     steps:
-      # ── Checkout ────────────────────────────────────────────────────────
+      # â”€â”€ Checkout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Azure OIDC Login ────────────────────────────────────────────────
+      # â”€â”€ Azure OIDC Login â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -43,7 +43,7 @@ jobs:
           tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # ── Write backend config from secret ────────────────────────────────
+      # â”€â”€ Write backend config from secret â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       - name: Write backend config
         run: |
           mkdir -p backends
@@ -52,7 +52,7 @@ jobs:
             > backends/ci.tfbackend
           echo "Backend config lines: $(wc -l < backends/ci.tfbackend)"
 
-      # ── Terraform setup ─────────────────────────────────────────────────
+      # â”€â”€ Terraform setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -68,18 +68,18 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # ── Plan ─────────────────────────────────────────────────────────────
+      # â”€â”€ Plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       - name: Terraform Plan
         id: plan
         run: |
           terraform plan \
-            -var-file="parameters/new-tenant-dev.tfvars" \
+            -var-file="parameters/dev.tfvars" \
             -no-color \
             -out=tfplan.binary 2>&1 | tee plan.txt
           echo "exitcode=$?" >> $GITHUB_OUTPUT
         continue-on-error: true
 
-      # ── Post plan as PR comment ──────────────────────────────────────────
+      # â”€â”€ Post plan as PR comment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       - name: Post Plan to PR
         uses: actions/github-script@v7
         with:
@@ -90,7 +90,7 @@ jobs:
             const truncated = plan.length > maxLen
               ? plan.slice(-maxLen) + '\n\n_(output truncated)_'
               : plan;
-            const body = `## 🏗️ Terraform Plan
+            const body = `## ðŸ—ï¸ Terraform Plan
             <details><summary>Show Plan</summary>
 
             \`\`\`hcl

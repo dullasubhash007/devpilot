@@ -1,11 +1,10 @@
-environment = "dev"
+﻿environment = "dev"
 location    = "eastus2"
 project     = "devpilot"
 
 vnet_address_space = ["10.10.0.0/16"]
-
-cosmos_serverless = true
-functions_sku     = "Y1"
+cosmos_serverless  = true
+container_image    = "<acr-name>.azurecr.io/devpilot:latest"
 
 ai_foundry_model_deployments = {
   "gpt-4o-mini" = {

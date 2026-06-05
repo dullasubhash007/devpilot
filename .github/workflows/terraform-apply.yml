@@ -1,7 +1,7 @@
-name: "Terraform Apply"
+﻿name: "Terraform Apply"
 
 # Runs automatically on push to master when infra/ changes.
-# Uses OIDC — no stored secrets needed.
+# Uses OIDC â€” no stored secrets needed.
 
 on:
   push:
@@ -16,7 +16,7 @@ on:
       var_file:
         description: "tfvars file (relative to infra/parameters/)"
         required: false
-        default: "new-tenant-dev.tfvars"
+        default: "dev.tfvars"
       confirm:
         description: "Type 'apply' to confirm destructive changes"
         required: true
@@ -38,7 +38,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     # Note: uncomment the line below once you create a "dev" environment
-    # in GitHub → Settings → Environments (enables required reviewers / protection)
+    # in GitHub â†’ Settings â†’ Environments (enables required reviewers / protection)
     # environment: dev
     defaults:
       run:
@@ -85,9 +85,9 @@ jobs:
               RG_ID="/subscriptions/${SUB}/resourceGroups/${name}"
               TF_ADDR="module.resource_groups.module.rg[\"${env_name}\"].azapi_resource.this"
               if terraform state show "${TF_ADDR}" > /dev/null 2>&1; then
-                echo "✅ ${name} already in state"
+                echo "âœ… ${name} already in state"
               elif az group show --name "${name}" --output none 2>/dev/null; then
-                echo "📥 Importing ${name}..."
+                echo "ðŸ“¥ Importing ${name}..."
                 terraform import "${TF_ADDR}" "${RG_ID}" || true
               fi
             done
@@ -97,7 +97,7 @@ jobs:
       - name: Set var file
         id: varfile
         run: |
-          VAR_FILE="${{ github.event.inputs.var_file || 'new-tenant-dev.tfvars' }}"
+          VAR_FILE="${{ github.event.inputs.var_file || 'dev.tfvars' }}"
           echo "path=parameters/$VAR_FILE" >> $GITHUB_OUTPUT
 
       - name: Terraform Plan

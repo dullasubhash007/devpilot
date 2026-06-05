@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # Global Variables
 # =============================================================================
 
@@ -37,7 +37,7 @@ variable "tags" {
 # --- AI Services ---
 
 variable "ai_foundry_model_deployments" {
-  description = "Model deployments to provision in Azure AI Foundry (used by Diagnose agent)"
+  description = "Model deployments to provision in Azure AI Foundry (Diagnose agent)"
   type = map(object({
     model_name    = string
     model_version = string
@@ -70,28 +70,10 @@ variable "cosmos_serverless" {
   default     = true
 }
 
-variable "functions_sku" {
-  description = "Azure Functions plan SKU (used when use_container_apps=false)"
-  type        = string
-  default     = "Y1" # Consumption
-}
-
-variable "use_container_apps" {
-  description = "Use Azure Container Apps instead of Azure Functions + APIM (required for Free Trial subscriptions)"
-  type        = bool
-  default     = false
-}
+# --- Compute (Container Apps) ---
 
 variable "container_image" {
-  description = "Container image for Container Apps deployment"
+  description = "Container image for the webhook and worker Container Apps"
   type        = string
   default     = "mcr.microsoft.com/devcontainers/python:3.11"
-}
-
-# --- GitHub App ---
-
-variable "github_app_id" {
-  description = "GitHub App ID (configured post-deployment)"
-  type        = string
-  default     = ""
 }
