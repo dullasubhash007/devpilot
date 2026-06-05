@@ -47,7 +47,10 @@ jobs:
       - name: Write backend config
         run: |
           mkdir -p backends
-          echo '${{ secrets.TF_BACKEND_CONFIG }}' > backends/ci.tfbackend
+          printf '%s' '${{ secrets.TF_BACKEND_CONFIG }}' \
+            | grep -E '^[a-z_]+ +=' \
+            > backends/ci.tfbackend
+          echo "Backend config lines: $(wc -l < backends/ci.tfbackend)"
 
       # ── Terraform setup ─────────────────────────────────────────────────
       - name: Setup Terraform
