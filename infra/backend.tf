@@ -7,12 +7,10 @@
 
 terraform {
   backend "azurerm" {
-    # These values are passed via -backend-config flags during `terraform init`
-    # See scripts/bootstrap-backend.sh
-    #
-    # resource_group_name  = "rg-devpilot-tfstate"
-    # storage_account_name = "stdevpilottfstate"
-    # container_name       = "tfstate"
-    # key                  = "devpilot.tfstate"
+    resource_group_name  = "rg-devpilot-tfstate"
+    storage_account_name = "stdevpilottfstate"
+    container_name       = "tfstate"
+    key                  = "devpilot.tfstate"
+    use_azuread_auth     = true
   }
 }

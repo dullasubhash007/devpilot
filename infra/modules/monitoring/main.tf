@@ -8,17 +8,13 @@ variable "name_prefix" { type = string }
 variable "suffix" { type = string }
 variable "tags" { type = map(string) }
 
-module "log_analytics" {
-  source  = "Azure/avm-res-operationalinsights-workspace/azurerm"
-  version = "~> 0.4"
-
+resource "azurerm_log_analytics_workspace" "this" {
   name                = "log-${var.name_prefix}-${var.suffix}"
   resource_group_name = var.resource_group_name
   location            = var.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
   tags                = var.tags
-
-  log_analytics_workspace_sku           = "PerGB2018"
-  log_analytics_workspace_retention_in_days = 30
 }
 
 module "app_insights" {
@@ -28,12 +24,18 @@ module "app_insights" {
   name                       = "appi-${var.name_prefix}-${var.suffix}"
   resource_group_name        = var.resource_group_name
   location                   = var.location
-  workspace_id               = module.log_analytics.resource_id
+  workspace_id               = azurerm_log_analytics_workspace.this.id
   application_type           = "web"
   tags                       = var.tags
 }
 
-output "log_analytics_workspace_id"                  { value = module.log_analytics.resource_id }
+output "log_analytics_workspace_id"                  { value = azurerm_log_analytics_workspace.this.id }
 output "application_insights_id"                     { value = module.app_insights.resource_id }
-output "application_insights_instrumentation_key"    { value = module.app_insights.instrumentation_key sensitive = true }
-output "application_insights_connection_string"      { value = module.app_insights.connection_string sensitive = true }
+output "application_insights_instrumentation_key" {
+  value     = module.app_insights.instrumentation_key
+  sensitive = true
+}
+output "application_insights_connection_string" {
+  value     = module.app_insights.connection_string
+  sensitive = true
+}

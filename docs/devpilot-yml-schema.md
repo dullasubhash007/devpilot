@@ -53,14 +53,14 @@ The Diagnose Agent runs **on pipeline failure** and explains the root cause.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `enabled` | bool | `true` | Enable/disable the Diagnose Agent |
-| `model` | string | `gpt-4o-mini` | Azure OpenAI model deployment name |
+| `model` | string | `gpt-4o-mini` | Azure AI Foundry model deployment name |
 | `max_log_lines` | int | `500` | Max log lines fed to the LLM (cost control) |
 | `post_pr_comment` | bool | `true` | Post diagnosis as PR comment |
 | `include_fix_suggestion` | bool | `true` | LLM also suggests a code fix |
 
 ### Supported models
-- `gpt-4o-mini` (cheap, fast — recommended for hackathon)
-- `gpt-4o` (higher quality, more expensive)
+- `gpt-4o-mini` (cheap, fast — recommended; served via Azure AI Foundry)
+- `gpt-4o` (higher quality, more expensive; served via Azure AI Foundry)
 
 ---
 

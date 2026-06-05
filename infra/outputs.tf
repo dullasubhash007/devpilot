@@ -16,13 +16,23 @@ output "resource_groups" {
 
 output "function_app_webhook_url" {
   description = "URL to register in GitHub App webhook settings"
-  value       = "https://${module.apim.gateway_hostname}/devpilot/webhook"
+  value       = "${module.apim.gateway_hostname}/devpilot/webhook"
 }
 
-output "openai_endpoint" {
-  description = "Azure OpenAI endpoint"
-  value       = module.openai.endpoint
+output "ai_foundry_endpoint" {
+  description = "Azure AI Foundry AI Services endpoint (used by Diagnose agent)"
+  value       = module.ai_foundry.ai_services_endpoint
   sensitive   = true
+}
+
+output "ai_foundry_hub_name" {
+  description = "Azure AI Foundry Hub workspace name"
+  value       = module.ai_foundry.ai_hub_name
+}
+
+output "ai_foundry_project_name" {
+  description = "Azure AI Foundry Project workspace name (Diagnose agent)"
+  value       = module.ai_foundry.ai_project_name
 }
 
 output "ml_workspace_name" {

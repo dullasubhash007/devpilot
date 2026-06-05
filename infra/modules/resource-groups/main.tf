@@ -36,3 +36,10 @@ output "compute_rg_name"    { value = module.rg["compute"].name }
 output "data_rg_name"       { value = module.rg["data"].name }
 output "security_rg_name"   { value = module.rg["security"].name }
 output "monitoring_rg_name" { value = module.rg["monitoring"].name }
+
+output "networking_rg_id" { value = module.rg["networking"].resource_id }
+output "ai_rg_id"         { value = module.rg["ai"].resource_id }
+output "compute_rg_id"    { value = module.rg["compute"].resource_id }
+output "data_rg_id"       { value = module.rg["data"].resource_id }
+output "security_rg_id"   { value = module.rg["security"].resource_id }
+output "monitoring_rg_id" { value = module.rg["monitoring"].resource_id }

@@ -41,4 +41,4 @@ module "mlw" {
 }
 
 output "workspace_id"   { value = module.mlw.resource_id }
-output "workspace_name" { value = module.mlw.name }
+output "workspace_name" { value = module.mlw.workspace.name }

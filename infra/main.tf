@@ -32,7 +32,10 @@ module "resource_groups" {
 
   project     = var.project
   environment = var.environment
-  location    = var.location
+  # RG location is metadata-only and pinned to the original creation region
+  # to avoid destroy-and-recreate when resource workloads are relocated.
+  # Workload resources still deploy to var.location.
+  location    = "eastus2"
   tags        = local.common_tags
 }
 
@@ -44,6 +47,7 @@ module "networking" {
   source = "./modules/networking"
 
   resource_group_name = module.resource_groups.networking_rg_name
+  resource_group_id   = module.resource_groups.networking_rg_id
   location            = var.location
   name_prefix         = local.name_prefix
   suffix              = local.suffix
@@ -69,11 +73,11 @@ module "keyvault" {
 module "app_configuration" {
   source = "./modules/app-configuration"
 
-  resource_group_name = module.resource_groups.security_rg_name
-  location            = var.location
-  name_prefix         = local.name_prefix
-  suffix              = local.suffix
-  tags                = local.common_tags
+  resource_group_id = module.resource_groups.security_rg_id
+  location          = var.location
+  name_prefix       = local.name_prefix
+  suffix            = local.suffix
+  tags              = local.common_tags
 }
 
 # =============================================================================
@@ -91,23 +95,29 @@ module "monitoring" {
 }
 
 # =============================================================================
-# AI SERVICES — Azure OpenAI + Azure ML + AI Foundry
+# AI SERVICES — Azure AI Foundry (Hub + Project + AI Services) + Azure ML
 # =============================================================================
 
-module "openai" {
-  source = "./modules/openai"
+module "ai_foundry" {
+  source = "./modules/ai-foundry"
 
   resource_group_name        = module.resource_groups.ai_rg_name
+  resource_group_id          = module.resource_groups.ai_rg_id
   location                   = var.location
   name_prefix                = local.name_prefix
   suffix                     = local.suffix
+  key_vault_id               = module.keyvault.id
+  application_insights_id    = module.monitoring.application_insights_id
+  storage_account_id         = module.data.storage_account_id
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
-  model_deployments          = var.openai_model_deployments
+  model_deployments          = var.ai_foundry_model_deployments
   tags                       = local.common_tags
 }
 
 module "azure_ml" {
   source = "./modules/azure-ml"
+
+  depends_on = [module.resource_groups]
 
   resource_group_name        = module.resource_groups.ai_rg_name
   location                   = var.location
@@ -131,7 +141,7 @@ module "data" {
   name_prefix         = local.name_prefix
   suffix              = local.suffix
   serverless          = var.cosmos_serverless
-  storage_rg_name     = module.resource_groups.data_rg_name
+  storage_rg_id       = module.resource_groups.data_rg_id
   tags                = local.common_tags
 }
 
@@ -143,6 +153,7 @@ module "functions" {
   source = "./modules/functions"
 
   resource_group_name        = module.resource_groups.compute_rg_name
+  resource_group_id          = module.resource_groups.compute_rg_id
   location                   = var.location
   name_prefix                = local.name_prefix
   suffix                     = local.suffix
@@ -151,8 +162,7 @@ module "functions" {
   application_insights_key   = module.monitoring.application_insights_instrumentation_key
   app_config_endpoint        = module.app_configuration.endpoint
   key_vault_uri              = module.keyvault.vault_uri
-  openai_endpoint            = module.openai.endpoint
-  ml_workspace_id            = module.azure_ml.workspace_id
+  ai_foundry_endpoint        = module.ai_foundry.ai_services_endpoint
   cosmos_endpoint            = module.data.cosmos_endpoint
   sku                        = var.functions_sku
   tags                       = local.common_tags
@@ -162,7 +172,9 @@ module "apim" {
   source = "./modules/apim"
 
   resource_group_name = module.resource_groups.compute_rg_name
-  location            = var.location
+  # APIM is pinned to eastus2 to avoid 40+ minute destroy/recreate when
+  # workload region changes. Cross-region calls to the function app are fine.
+  location            = "eastus2"
   name_prefix         = local.name_prefix
   suffix              = local.suffix
   function_app_url    = module.functions.default_hostname
@@ -187,16 +199,18 @@ resource "azurerm_role_assignment" "functions_appcfg" {
   principal_id         = module.functions.principal_id
 }
 
-# Functions → Azure OpenAI (Cognitive Services User)
+# Functions → Azure AI Foundry AI Services (Cognitive Services User)
 resource "azurerm_role_assignment" "functions_openai" {
-  scope                = module.openai.id
+  scope                = module.ai_foundry.ai_services_id
   role_definition_name = "Cognitive Services User"
   principal_id         = module.functions.principal_id
 }
 
-# Functions → Cosmos DB (Built-in Data Contributor)
-resource "azurerm_role_assignment" "functions_cosmos" {
-  scope                = module.data.cosmos_id
-  role_definition_name = "Cosmos DB Built-in Data Contributor"
-  principal_id         = module.functions.principal_id
+# Functions → Cosmos DB (Built-in Data Contributor — data plane role)
+resource "azurerm_cosmosdb_sql_role_assignment" "functions_cosmos" {
+  resource_group_name = module.resource_groups.data_rg_name
+  account_name        = module.data.cosmos_name
+  role_definition_id  = "${module.data.cosmos_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  scope               = module.data.cosmos_id
+  principal_id        = module.functions.principal_id
 }

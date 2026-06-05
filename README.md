@@ -22,7 +22,7 @@ DevPilot deploys 3 specialized AI agents that work together inside your GitHub w
 | Agent | Powered By | What It Does |
 |-------|-----------|--------------|
 | 🔮 **Predict** | Azure ML | Scores failure probability *before* the pipeline runs |
-| 🔍 **Diagnose** | Azure OpenAI (GPT-4o-mini) | Root cause analysis + fix suggestions on failure |
+| 🔍 **Diagnose** | Azure AI Foundry (GPT-4o-mini) | Root cause analysis + fix suggestions on failure |
 | 🤖 **Act** | Semantic Kernel + Azure AI Foundry | Adjusts quality gates, recommends deploy strategy, creates issues |
 
 > **Datadog observes. Harness accelerates. DevPilot predicts, diagnoses, and acts — autonomously.**
@@ -81,7 +81,7 @@ See [.devpilot.yml schema](docs/devpilot-yml-schema.md) for the full reference.
 | GitHub Integration | GitHub App, Webhooks, Checks API |
 | Agent Orchestration | Azure AI Foundry + Semantic Kernel |
 | Prediction Model | Azure ML (AutoML / scikit-learn) |
-| Language Model | Azure OpenAI GPT-4o-mini |
+| Language Model | Azure AI Foundry (GPT-4o-mini) |
 | Backend | Azure Functions (Python 3.11) |
 | API Layer | Azure API Management (Consumption) |
 | Config | Azure App Configuration |

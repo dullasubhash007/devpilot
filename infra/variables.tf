@@ -36,8 +36,8 @@ variable "tags" {
 
 # --- AI Services ---
 
-variable "openai_model_deployments" {
-  description = "Azure OpenAI model deployments"
+variable "ai_foundry_model_deployments" {
+  description = "Model deployments to provision in Azure AI Foundry (used by Diagnose agent)"
   type = map(object({
     model_name    = string
     model_version = string

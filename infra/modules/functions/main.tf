@@ -3,6 +3,7 @@
 # =============================================================================
 
 variable "resource_group_name" { type = string }
+variable "resource_group_id"   { type = string }
 variable "location" { type = string }
 variable "name_prefix" { type = string }
 variable "suffix" { type = string }
@@ -11,8 +12,7 @@ variable "storage_account_name" { type = string }
 variable "application_insights_key" { type = string }
 variable "app_config_endpoint" { type = string }
 variable "key_vault_uri" { type = string }
-variable "openai_endpoint" { type = string }
-variable "ml_workspace_id" { type = string }
+variable "ai_foundry_endpoint" { type = string }
 variable "cosmos_endpoint" { type = string }
 variable "sku" { type = string }
 variable "tags" { type = map(string) }
@@ -33,7 +33,7 @@ module "func" {
   version = "~> 0.18"
 
   name                = "func-${var.name_prefix}-${var.suffix}"
-  resource_group_name = var.resource_group_name
+  parent_id           = var.resource_group_id
   location            = var.location
   tags                = var.tags
 
@@ -66,8 +66,7 @@ module "func" {
     # Config endpoints (non-secret)
     AZURE_APP_CONFIG_ENDPOINT           = var.app_config_endpoint
     AZURE_KEY_VAULT_URI                 = var.key_vault_uri
-    AZURE_OPENAI_ENDPOINT               = var.openai_endpoint
-    AZURE_ML_WORKSPACE_ID               = var.ml_workspace_id
+    AI_FOUNDRY_ENDPOINT                 = var.ai_foundry_endpoint
     COSMOS_ENDPOINT                     = var.cosmos_endpoint
     COSMOS_DATABASE                     = "devpilot"
     PYTHON_ENABLE_WORKER_EXTENSIONS     = "1"
@@ -76,5 +75,5 @@ module "func" {
 
 output "id"               { value = module.func.resource_id }
 output "name"             { value = module.func.name }
-output "default_hostname" { value = module.func.resource.default_hostname }
+output "default_hostname" { value = module.func.resource_uri }
 output "principal_id"     { value = module.func.system_assigned_mi_principal_id }

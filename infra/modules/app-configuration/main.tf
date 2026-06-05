@@ -5,7 +5,7 @@
 # Secrets live in Key Vault — App Config can reference them.
 # =============================================================================
 
-variable "resource_group_name" { type = string }
+variable "resource_group_id" { type = string }
 variable "location" { type = string }
 variable "name_prefix" { type = string }
 variable "suffix" { type = string }
@@ -15,12 +15,12 @@ module "appcfg" {
   source  = "Azure/avm-res-appconfiguration-configurationstore/azure"
   version = "~> 0.5"
 
-  name                = "appcfg-${var.name_prefix}-${var.suffix}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  tags                = var.tags
+  name                       = "appcfg-${var.name_prefix}-${var.suffix}"
+  resource_group_resource_id = var.resource_group_id
+  location                   = var.location
+  tags                       = var.tags
 
-  sku                = "free"
+  sku                = "standard"
   enable_telemetry   = false
 
   local_auth_enabled              = false

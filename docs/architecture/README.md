@@ -18,15 +18,16 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │              Azure Functions (Python 3.11)                       │
 │   webhook_handler → routes to predict / diagnose / act triggers │
-└──────────┬──────────────────┬──────────────────┬───────────────┘
-           │                  │                  │
-           ▼                  ▼                  ▼
-   ┌──────────────┐   ┌───────────────┐   ┌──────────────────┐
-   │ Azure ML     │   │ Azure OpenAI  │   │ Azure AI Foundry │
-   │ Predict      │   │ Diagnose      │   │ + Semantic       │
-   │ (serverless) │   │ (GPT-4o-mini) │   │ Kernel (Act)     │
-   └──────────────┘   └───────────────┘   └──────────────────┘
-           │                  │                  │
+└──────────┬──────────────────┬──────────────────────────────────┘
+           │                  │
+           ▼                  ▼
+   ┌──────────────┐   ┌────────────────────────────────────────┐
+   │ Azure ML     │   │         Azure AI Foundry               │
+   │ Predict      │   │  Hub → Project → AI Services           │
+   │ (serverless) │   │  Diagnose (GPT-4o-mini) + Act          │
+   └──────────────┘   │  + Semantic Kernel orchestration       │
+           │          └────────────────────────────────────────┘
+           │                  │
            └──────────────────┼──────────────────┘
                               ▼
            ┌──────────────────────────────────────┐
@@ -45,7 +46,7 @@
 | Resource Group | Purpose |
 |---|---|
 | `rg-devpilot-networking` | VNet, NSGs, Service Endpoints |
-| `rg-devpilot-ai` | AI Foundry, OpenAI, Azure ML |
+| `rg-devpilot-ai` | AI Foundry Hub + Project + AI Services, Azure ML |
 | `rg-devpilot-compute` | Functions, Container Apps, APIM |
 | `rg-devpilot-data` | Cosmos DB, Storage, AI Search |
 | `rg-devpilot-security` | Key Vault, App Configuration |
@@ -64,7 +65,7 @@
 - **Trigger**: `workflow_run` webhook with `conclusion: failure`
 - **Input**: workflow logs + diff + test output (chunked)
 - **Output**: structured JSON `{root_cause, fix_suggestion, file, line}`
-- **Backend**: Azure OpenAI GPT-4o-mini with structured outputs
+- **Backend**: Azure AI Foundry (Hub → Project → AI Services) GPT-4o-mini with structured outputs
 - **Surface**: PR comment + Job Summary
 
 ### 🤖 Act Agent

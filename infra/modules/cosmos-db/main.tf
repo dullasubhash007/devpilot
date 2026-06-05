@@ -7,7 +7,7 @@ variable "location" { type = string }
 variable "name_prefix" { type = string }
 variable "suffix" { type = string }
 variable "serverless" { type = bool }
-variable "storage_rg_name" { type = string }
+variable "storage_rg_id" { type = string }
 variable "tags" { type = map(string) }
 
 # --- Storage account (shared by ML workspace, Functions, raw log storage) ---
@@ -16,7 +16,7 @@ module "storage" {
   version = "~> 0.6"
 
   name                          = substr(replace("st${var.name_prefix}${var.suffix}", "-", ""), 0, 24)
-  resource_group_name           = var.storage_rg_name
+  parent_id                     = var.storage_rg_id
   location                      = var.location
   account_kind                  = "StorageV2"
   account_tier                  = "Standard"
@@ -29,65 +29,66 @@ module "storage" {
     pipeline_logs = { name = "pipeline-logs", container_access_type = "private" }
     ml_artifacts  = { name = "ml-artifacts",  container_access_type = "private" }
   }
-
-  blob_properties = {
-    versioning_enabled = false
-    delete_retention_policy = {
-      days = 7
-    }
-  }
 }
 
 # --- Cosmos DB (Serverless) ---
-module "cosmos" {
-  source  = "Azure/avm-res-documentdb-databaseaccount/azurerm"
-  version = "~> 0.8"
-
-  name                = "cosmos-${var.name_prefix}-${var.suffix}"
-  resource_group_name = var.resource_group_name
+resource "azurerm_cosmosdb_account" "this" {
+  name                = substr(replace("cosmos-${var.name_prefix}-${var.suffix}", "_", "-"), 0, 44)
   location            = var.location
-  tags                = var.tags
+  resource_group_name = var.resource_group_name
+  offer_type          = "Standard"
+  kind                = "GlobalDocumentDB"
 
-  offer_type             = "Standard"
-  kind                   = "GlobalDocumentDB"
-  consistency_level      = "Session"
-  automatic_failover_enabled = false
+  automatic_failover_enabled     = false
+  public_network_access_enabled  = true
 
-  capabilities = var.serverless ? [{ name = "EnableServerless" }] : []
+  consistency_policy {
+    consistency_level = "Session"
+  }
 
-  geo_locations = [{
+  dynamic "capabilities" {
+    for_each = var.serverless ? [1] : []
+    content {
+      name = "EnableServerless"
+    }
+  }
+
+  geo_location {
     location          = var.location
     failover_priority = 0
     zone_redundant    = false
-  }]
-
-  sql_databases = {
-    devpilot = {
-      name = "devpilot"
-      containers = {
-        pipeline_runs = {
-          name                = "pipeline_runs"
-          partition_key_paths = ["/repo_id"]
-        }
-        predictions = {
-          name                = "predictions"
-          partition_key_paths = ["/repo_id"]
-        }
-        diagnoses = {
-          name                = "diagnoses"
-          partition_key_paths = ["/repo_id"]
-        }
-        actions = {
-          name                = "actions"
-          partition_key_paths = ["/repo_id"]
-        }
-      }
-    }
   }
+
+  tags = var.tags
+}
+
+resource "azurerm_cosmosdb_sql_database" "devpilot" {
+  name                = "devpilot"
+  resource_group_name = var.resource_group_name
+  account_name        = azurerm_cosmosdb_account.this.name
+}
+
+locals {
+  cosmos_containers = {
+    pipeline_runs = "/repo_id"
+    predictions   = "/repo_id"
+    diagnoses     = "/repo_id"
+    actions       = "/repo_id"
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "this" {
+  for_each = local.cosmos_containers
+
+  name                = each.key
+  resource_group_name = var.resource_group_name
+  account_name        = azurerm_cosmosdb_account.this.name
+  database_name       = azurerm_cosmosdb_sql_database.devpilot.name
+  partition_key_paths = [each.value]
 }
 
 output "storage_account_id"   { value = module.storage.resource_id }
 output "storage_account_name" { value = module.storage.name }
-output "cosmos_id"            { value = module.cosmos.resource_id }
-output "cosmos_endpoint"      { value = module.cosmos.endpoint }
-output "cosmos_name"          { value = module.cosmos.name }
+output "cosmos_id"            { value = azurerm_cosmosdb_account.this.id }
+output "cosmos_endpoint"      { value = azurerm_cosmosdb_account.this.endpoint }
+output "cosmos_name"          { value = azurerm_cosmosdb_account.this.name }

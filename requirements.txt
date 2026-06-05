@@ -1,0 +1,27 @@
+# Azure Functions runtime
+azure-functions>=1.21.0
+
+# Azure SDKs
+azure-identity>=1.17.0
+azure-keyvault-secrets>=4.8.0
+azure-appconfiguration>=1.6.0
+azure-cosmos>=4.7.0
+
+# GitHub App JWT signing
+PyJWT>=2.8.0
+cryptography>=42.0.0
+
+# HTTP client
+httpx>=0.27.0
+
+# Azure AI Foundry / OpenAI SDK (works against AI Services endpoint)
+openai>=1.35.0
+
+# Semantic Kernel (Act agent)
+semantic-kernel>=1.3.0
+
+# Config parsing
+PyYAML>=6.0.2
+
+# Observability
+opencensus-ext-azure>=1.1.13

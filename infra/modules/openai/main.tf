@@ -3,6 +3,7 @@
 # =============================================================================
 
 variable "resource_group_name" { type = string }
+variable "resource_group_id"   { type = string }
 variable "location" { type = string }
 variable "name_prefix" { type = string }
 variable "suffix" { type = string }
@@ -22,14 +23,14 @@ module "openai" {
   source  = "Azure/avm-res-cognitiveservices-account/azurerm"
   version = "~> 0.7"
 
-  name                = "oai-${var.name_prefix}-${var.suffix}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  kind                = "OpenAI"
-  sku_name            = "S0"
-  tags                = var.tags
+  name      = "ais-${var.name_prefix}-${var.suffix}"
+  parent_id = var.resource_group_id
+  location  = var.location
+  kind      = "AIServices"
+  sku_name  = "S0"
+  tags      = var.tags
 
-  custom_subdomain_name         = "oai-${var.name_prefix}-${var.suffix}"
+  custom_subdomain_name         = "ais-${var.name_prefix}-${var.suffix}"
   public_network_access_enabled = true
   local_auth_enabled            = false # use managed identity / RBAC
 
@@ -41,8 +42,8 @@ module "openai" {
         name    = v.model_name
         version = v.model_version
       }
-      sku = {
-        name     = v.sku_name
+      scale = {
+        type     = v.sku_name
         capacity = v.capacity
       }
     }

@@ -3,6 +3,7 @@
 # =============================================================================
 
 variable "resource_group_name" { type = string }
+variable "resource_group_id"   { type = string }
 variable "location" { type = string }
 variable "name_prefix" { type = string }
 variable "suffix" { type = string }
@@ -13,11 +14,11 @@ module "vnet" {
   source  = "Azure/avm-res-network-virtualnetwork/azurerm"
   version = "~> 0.7"
 
-  name                = "vnet-${var.name_prefix}-${var.suffix}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  address_space       = var.address_space
-  tags                = var.tags
+  name          = "vnet-${var.name_prefix}-${var.suffix}"
+  parent_id     = var.resource_group_id
+  location      = var.location
+  address_space = var.address_space
+  tags          = var.tags
 
   subnets = {
     ingress = {

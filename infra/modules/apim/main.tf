@@ -14,7 +14,7 @@ variable "tags" { type = map(string) }
 
 module "apim" {
   source  = "Azure/avm-res-apimanagement-service/azurerm"
-  version = "~> 0.1"
+  version = "~> 0.0"
 
   name                = "apim-${var.name_prefix}-${var.suffix}"
   resource_group_name = var.resource_group_name
@@ -49,5 +49,5 @@ resource "azurerm_api_management_api_operation" "webhook" {
   description         = "Receives GitHub webhook events (push, PR, workflow_run)"
 }
 
-output "gateway_hostname" { value = module.apim.gateway_hostname }
+output "gateway_hostname" { value = module.apim.apim_gateway_url }
 output "name"             { value = module.apim.name }
