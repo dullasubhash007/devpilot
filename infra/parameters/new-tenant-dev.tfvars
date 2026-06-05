@@ -1,5 +1,5 @@
 environment = "dev"
-location    = "eastus2"
+location    = "westus2"
 project     = "devpilot"
 
 vnet_address_space = ["10.10.0.0/16"]
