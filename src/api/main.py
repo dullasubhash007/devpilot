@@ -20,16 +20,11 @@ app = FastAPI(title="DevPilot Webhook", version="1.0.0")
 
 
 def _queue_client() -> QueueServiceClient:
-    # Use ManagedIdentityCredential in Container Apps (IDENTITY_ENDPOINT is set)
-    # Fall back to DefaultAzureCredential for local development
-    if os.getenv("IDENTITY_ENDPOINT"):
-        from azure.identity import ManagedIdentityCredential
-        cred = ManagedIdentityCredential()
-    else:
-        cred = DefaultAzureCredential()
+    # Use ManagedIdentityCredential explicitly — avoids DefaultAzureCredential
+    # falling through to Azure CLI token which lacks Storage Queue scope.
     return QueueServiceClient(
         account_url=f"https://{os.environ['STORAGE_ACCOUNT_NAME']}.queue.core.windows.net",
-        credential=cred,
+        credential=ManagedIdentityCredential(),
     )
 
 
