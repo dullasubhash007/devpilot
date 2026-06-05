@@ -37,7 +37,9 @@ jobs:
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
-    environment: dev   # requires environment approval if configured in GitHub
+    # Note: uncomment the line below once you create a "dev" environment
+    # in GitHub → Settings → Environments (enables required reviewers / protection)
+    # environment: dev
     defaults:
       run:
         working-directory: infra
