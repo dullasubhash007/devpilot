@@ -9,6 +9,10 @@ functions_sku       = "Y1"       # unused when use_container_apps=true
 use_container_apps  = true       # Free Trial compatible (replaces Functions + APIM)
 container_image     = "mcr.microsoft.com/devcontainers/python:3.11"  # placeholder; replace with ACR image after build
 
+# No model deployments — Free Trial has 0 AI Services quota.
+# Deploy manually via portal after requesting quota increase.
+ai_foundry_model_deployments = {}
+
 # Deployment note: leave model deployments empty if the subscription does not
 # have OpenAI/AIServices quota in the chosen region. Deploy manually via portal
 # after onboarding quota.
