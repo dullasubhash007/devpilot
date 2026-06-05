@@ -1,0 +1,12 @@
+# Example backend config — copy and fill in for your environment.
+# Generate automatically with:  .\scripts\bootstrap-backend.ps1 -BackendName <env>
+#
+# Usage:
+#   terraform init -backend-config=backends/<env>.tfbackend
+#
+resource_group_name  = "rg-devpilot-tfstate"
+storage_account_name = "stdevpilot<suffix>"
+container_name       = "tfstate"
+key                  = "devpilot.tfstate"
+subscription_id      = "<subscription-id>"
+tenant_id            = "<tenant-id>"

@@ -1,16 +1,17 @@
 # =============================================================================
-# Remote State Backend
+# Remote State Backend — Partial Configuration
 # =============================================================================
-# Uses Azure Storage to store Terraform state. Bootstrap script
-# scripts/bootstrap-backend.sh creates this storage account before first apply.
+# No values are hardcoded here so the same code works across any tenant/
+# subscription. Supply the backend config at init time via a .tfbackend file:
+#
+#   terraform init -backend-config=backends/<env>.tfbackend
+#
+# Bootstrap script (scripts/bootstrap-backend.ps1) creates the storage account
+# and generates the .tfbackend file automatically.
 # =============================================================================
 
 terraform {
   backend "azurerm" {
-    resource_group_name  = "rg-devpilot-tfstate"
-    storage_account_name = "stdevpilottfstate"
-    container_name       = "tfstate"
-    key                  = "devpilot.tfstate"
-    use_azuread_auth     = true
+    use_azuread_auth = true
   }
 }

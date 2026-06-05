@@ -1,0 +1,3 @@
+# .tfbackend files contain subscription/tenant IDs — keep out of source control.
+# Commit only example files (*.tfbackend.example) if needed.
+*.tfbackend
