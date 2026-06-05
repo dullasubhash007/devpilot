@@ -49,15 +49,16 @@ jobs:
           IMAGE_TAG="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           IMAGE_LATEST="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest"
 
-          az acr build \
-            --registry ${{ env.ACR_NAME }} \
-            --image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
-            --image "${{ env.IMAGE_NAME }}:latest" \
-            --file Dockerfile \
-            . 
+          # Login to ACR using Azure CLI token (works without admin credentials)
+          az acr login --name ${{ env.ACR_NAME }}
+
+          # Build with standard docker buildx (ACR Tasks blocked on Free Trial)
+          docker build -t "$IMAGE_TAG" -t "$IMAGE_LATEST" .
+          docker push "$IMAGE_TAG"
+          docker push "$IMAGE_LATEST"
 
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          echo "✅ Image built and pushed: $IMAGE_TAG"
+          echo "✅ Image pushed: $IMAGE_TAG"
 
       # ── Update webhook Container App ────────────────────────────────────
       - name: Update webhook Container App
