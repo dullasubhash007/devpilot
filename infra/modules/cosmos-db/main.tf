@@ -2,6 +2,13 @@
 # Data Module — Cosmos DB (Serverless) + Storage Account
 # =============================================================================
 
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm" }
+    azapi   = { source = "azure/azapi" }
+  }
+}
+
 variable "resource_group_name" { type = string }
 variable "location" { type = string }
 variable "name_prefix" { type = string }
@@ -88,17 +95,25 @@ resource "azurerm_cosmosdb_sql_container" "this" {
 }
 
 # --- Storage Queues for agent job routing ---
-resource "azurerm_storage_queue" "predict"  {
-  name                 = "predict-jobs"
-  storage_account_name = module.storage.name
+# Using azapi_resource (ARM management plane) to avoid data-plane auth issues
+# with azurerm_storage_queue when use_azuread_auth=true.
+resource "azapi_resource" "queue_predict" {
+  type      = "Microsoft.Storage/storageAccounts/queueServices/queues@2023-01-01"
+  name      = "predict-jobs"
+  parent_id = "${module.storage.resource_id}/queueServices/default"
+  body      = {}
 }
-resource "azurerm_storage_queue" "diagnose" {
-  name                 = "diagnose-jobs"
-  storage_account_name = module.storage.name
+resource "azapi_resource" "queue_diagnose" {
+  type      = "Microsoft.Storage/storageAccounts/queueServices/queues@2023-01-01"
+  name      = "diagnose-jobs"
+  parent_id = "${module.storage.resource_id}/queueServices/default"
+  body      = {}
 }
-resource "azurerm_storage_queue" "act"      {
-  name                 = "act-jobs"
-  storage_account_name = module.storage.name
+resource "azapi_resource" "queue_act" {
+  type      = "Microsoft.Storage/storageAccounts/queueServices/queues@2023-01-01"
+  name      = "act-jobs"
+  parent_id = "${module.storage.resource_id}/queueServices/default"
+  body      = {}
 }
 
 output "storage_account_id"   { value = module.storage.resource_id }
