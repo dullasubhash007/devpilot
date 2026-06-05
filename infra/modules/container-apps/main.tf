@@ -33,6 +33,12 @@ variable "container_image" {
 variable "applicationinsights_connection_string" { type = string }
 variable "tags"                                  { type = map(string) }
 
+# ACR registry — optional, only used when container_image references an ACR
+locals {
+  is_acr_image = length(regexall("azurecr\\.io", var.container_image)) > 0
+  acr_server   = local.is_acr_image ? split("/", var.container_image)[0] : ""
+}
+
 # =============================================================================
 # CONTAINER APPS ENVIRONMENT
 # =============================================================================
@@ -59,6 +65,14 @@ resource "azurerm_container_app" "webhook" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  dynamic "registry" {
+    for_each = local.is_acr_image ? [1] : []
+    content {
+      server   = local.acr_server
+      identity = "system"
+    }
   }
 
   ingress {
@@ -134,6 +148,14 @@ resource "azurerm_container_app" "workers" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  dynamic "registry" {
+    for_each = local.is_acr_image ? [1] : []
+    content {
+      server   = local.acr_server
+      identity = "system"
+    }
   }
 
   # No ingress — this is a background worker only
