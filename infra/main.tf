@@ -101,6 +101,8 @@ module "monitoring" {
 module "ai_foundry" {
   source = "./modules/ai-foundry"
 
+  depends_on = [module.resource_groups]
+
   resource_group_name        = module.resource_groups.ai_rg_name
   resource_group_id          = module.resource_groups.ai_rg_id
   location                   = var.location

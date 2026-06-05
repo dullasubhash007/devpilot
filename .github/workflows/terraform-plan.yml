@@ -1,0 +1,109 @@
+name: "Terraform Plan"
+
+# Runs on every PR that touches infra/ — posts plan as a PR comment.
+# Uses OIDC (no stored secrets). Backend config supplied via environment secret.
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-*.yml"
+
+permissions:
+  id-token: write      # required for OIDC token exchange
+  contents: read
+  pull-requests: write # required to post plan comment
+
+env:
+  TF_VERSION: "1.15.2"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Azure OIDC Login ────────────────────────────────────────────────
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ── Write backend config from secret ────────────────────────────────
+      - name: Write backend config
+        run: |
+          mkdir -p backends
+          echo '${{ secrets.TF_BACKEND_CONFIG }}' > backends/ci.tfbackend
+
+      # ── Terraform setup ─────────────────────────────────────────────────
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config=backends/ci.tfbackend
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      # ── Plan ─────────────────────────────────────────────────────────────
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var-file="parameters/new-tenant-dev.tfvars" \
+            -no-color \
+            -out=tfplan.binary 2>&1 | tee plan.txt
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      # ── Post plan as PR comment ──────────────────────────────────────────
+      - name: Post Plan to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infra/plan.txt', 'utf8');
+            const maxLen = 65000;
+            const truncated = plan.length > maxLen
+              ? plan.slice(-maxLen) + '\n\n_(output truncated)_'
+              : plan;
+            const body = `## 🏗️ Terraform Plan
+            <details><summary>Show Plan</summary>
+
+            \`\`\`hcl
+            ${truncated}
+            \`\`\`
+            </details>
+
+            **Exit code**: \`${{ steps.plan.outputs.exitcode }}\``;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+      - name: Fail if plan failed
+        if: steps.plan.outputs.exitcode != '0'
+        run: exit 1

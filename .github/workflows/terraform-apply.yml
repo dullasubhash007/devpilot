@@ -1,0 +1,89 @@
+name: "Terraform Apply"
+
+# Runs automatically on push to master when infra/ changes.
+# Uses OIDC — no stored secrets needed.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-*.yml"
+
+  # Allow manual trigger with optional environment override
+  workflow_dispatch:
+    inputs:
+      var_file:
+        description: "tfvars file (relative to infra/parameters/)"
+        required: false
+        default: "new-tenant-dev.tfvars"
+      confirm:
+        description: "Type 'apply' to confirm destructive changes"
+        required: true
+        default: "apply"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VERSION: "1.15.2"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: dev   # requires environment approval if configured in GitHub
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Write backend config
+        run: |
+          mkdir -p backends
+          echo '${{ secrets.TF_BACKEND_CONFIG }}' > backends/ci.tfbackend
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -backend-config=backends/ci.tfbackend
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Set var file
+        id: varfile
+        run: |
+          VAR_FILE="${{ github.event.inputs.var_file || 'new-tenant-dev.tfvars' }}"
+          echo "path=parameters/$VAR_FILE" >> $GITHUB_OUTPUT
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var-file="${{ steps.varfile.outputs.path }}" \
+            -out=tfplan \
+            -no-color
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Show Outputs
+        run: terraform output -no-color
