@@ -8,6 +8,12 @@
 #   • ca-workers                  — Background queue-polling worker
 # =============================================================================
 
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm" }
+  }
+}
+
 variable "resource_group_name"               { type = string }
 variable "resource_group_id"                 { type = string }
 variable "location"                          { type = string }
@@ -15,17 +21,17 @@ variable "name_prefix"                       { type = string }
 variable "suffix"                            { type = string }
 variable "log_analytics_workspace_id"        { type = string }
 variable "log_analytics_workspace_key"       { type = string }
-variable "storage_account_name"             { type = string }
-variable "app_config_endpoint"              { type = string }
-variable "key_vault_uri"                    { type = string }
-variable "ai_foundry_endpoint"             { type = string }
-variable "cosmos_endpoint"                 { type = string }
+variable "storage_account_name"              { type = string }
+variable "app_config_endpoint"               { type = string }
+variable "key_vault_uri"                     { type = string }
+variable "ai_foundry_endpoint"               { type = string }
+variable "cosmos_endpoint"                   { type = string }
 variable "container_image" {
   type    = string
   default = "mcr.microsoft.com/devcontainers/python:3.11"
 }
 variable "applicationinsights_connection_string" { type = string }
-variable "tags"                            { type = map(string) }
+variable "tags"                                  { type = map(string) }
 
 # =============================================================================
 # CONTAINER APPS ENVIRONMENT
