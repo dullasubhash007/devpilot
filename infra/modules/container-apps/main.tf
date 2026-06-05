@@ -20,10 +20,11 @@ variable "app_config_endpoint"              { type = string }
 variable "key_vault_uri"                    { type = string }
 variable "ai_foundry_endpoint"             { type = string }
 variable "cosmos_endpoint"                 { type = string }
-variable "container_image"                 { type = string  
+variable "container_image" {
+  type    = string
   default = "mcr.microsoft.com/devcontainers/python:3.11"
 }
-variable "applicationinsights_connection_string" { type = string  }
+variable "applicationinsights_connection_string" { type = string }
 variable "tags"                            { type = map(string) }
 
 # =============================================================================
