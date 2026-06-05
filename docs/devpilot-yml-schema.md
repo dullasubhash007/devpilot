@@ -9,6 +9,9 @@ DevPilot resolves configuration in this priority order:
        highest                    middle                        fallback
 ```
 
+> **Validation**: DevPilot validates `.devpilot.yml` on every push and posts
+> a friendly error comment if the file is invalid.
+
 ---
 
 ## Top-Level Structure

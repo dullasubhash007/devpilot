@@ -1,4 +1,4 @@
-# DevPilot 🚀
+﻿# DevPilot 🚀
 
 > **Predictive CI/CD Intelligence — AI-native, GitHub-native**
 
@@ -32,25 +32,27 @@ DevPilot deploys 3 specialized AI agents that work together inside your GitHub w
 ## 🏗️ Architecture
 
 ```
-GitHub App  ──▶  Azure API Management  ──▶  Azure Functions
-                                                  │
-                ┌─────────────────────────────────┼─────────────────┐
-                ▼                                 ▼                 ▼
-        Azure ML (Predict)          Azure OpenAI (Diagnose)   AI Foundry (Act)
-                │                                 │                 │
-                └─────────────► Azure Cosmos DB ◄─────────────────┘
-                                       │
-                            GitHub Checks / PR Comments / Job Summary
+GitHub App  ──▶  Azure Container Apps (webhook)  ──▶  Storage Queues
+                                                              │
+                 ┌────────────────────────────────────────────┤
+                 ▼                          ▼                  ▼
+         Azure ML (Predict)    Azure AI Foundry (Diagnose+Act)  Cosmos DB
+                 │                          │                  │
+                 └──────────────────────────┼──────────────────┘
+                                            ▼
+                                GitHub Checks / PR Comments / Issues
 ```
 
-See [docs/architecture/](docs/architecture/) for the detailed diagram.
+See [docs/architecture/README.md](docs/architecture/README.md) for the detailed diagram.
 
 ---
 
 ## ⚡ Quick Start
 
 ### 1. Install the GitHub App
-👉 [Install DevPilot on your repo](#) *(coming soon)*
+👉 Install **DevPilot** on your repository via the GitHub App settings.
+
+Register your own instance — see [docs/github-app-setup.md](docs/github-app-setup.md).
 
 ### 2. Add `.devpilot.yml` to your repo
 ```yaml
@@ -79,17 +81,18 @@ See [.devpilot.yml schema](docs/devpilot-yml-schema.md) for the full reference.
 | Layer | Technology |
 |---|---|
 | GitHub Integration | GitHub App, Webhooks, Checks API |
+| Webhook Server | Azure Container Apps (FastAPI + Python 3.11) |
 | Agent Orchestration | Azure AI Foundry + Semantic Kernel |
 | Prediction Model | Azure ML (AutoML / scikit-learn) |
 | Language Model | Azure AI Foundry (GPT-4o-mini) |
-| Backend | Azure Functions (Python 3.11) |
-| API Layer | Azure API Management (Consumption) |
+| API Layer | Azure Container Apps (public HTTPS ingress) |
 | Config | Azure App Configuration |
 | Secrets | Azure Key Vault |
 | Database | Azure Cosmos DB (Serverless) |
+| Container Registry | Azure Container Registry |
 | IaC | Terraform (Azure Verified Modules) |
 | Monitoring | Azure Monitor + App Insights |
-| CI/CD | GitHub Actions |
+| CI/CD | GitHub Actions (OIDC — no stored secrets) |
 
 ---
 
@@ -98,15 +101,31 @@ See [.devpilot.yml schema](docs/devpilot-yml-schema.md) for the full reference.
 ```
 devpilot/
 ├── infra/                 # Terraform AVM modules (Azure infrastructure)
+│   ├── modules/
+│   │   ├── ai-foundry/    # AI Hub + Project + AI Services
+│   │   ├── container-apps/# Webhook + Worker Container Apps
+│   │   ├── azure-ml/      # ML workspace for Predict agent
+│   │   ├── cosmos-db/     # Cosmos DB + Storage + Queues
+│   │   └── ...            # keyvault, networking, monitoring, etc.
+│   ├── backends/          # Per-environment .tfbackend files (gitignored)
+│   ├── parameters/        # Per-environment .tfvars
+│   └── scripts/           # bootstrap-backend.ps1, deploy-new-tenant.ps1
 ├── src/
+│   ├── api/               # FastAPI webhook server (Container App)
+│   ├── workers/           # Queue worker (Container App)
 │   ├── agents/            # Predict, Diagnose, Act agents
-│   ├── functions/         # Azure Functions handlers
+│   ├── functions/         # Azure Functions handlers (MCAPS deployment)
 │   ├── github/            # GitHub API clients (Checks, PR, Issues)
-│   ├── shared/            # Common utilities
-│   └── config/            # Config loading (.devpilot.yml + App Config)
+│   ├── shared/            # Config, Key Vault, Cosmos, logging utils
+│   └── config/            # Config schema + defaults
 ├── .github/workflows/     # CI/CD pipelines
+│   ├── terraform-plan.yml        # PR: plan infra, post comment
+│   ├── terraform-apply.yml       # Push to master: apply infra
+│   ├── deploy-container-apps.yml # Push to master: build + deploy image
+│   └── deploy-functions.yml      # Push to master: deploy Azure Functions
 ├── docs/                  # Architecture, schemas, guides
 ├── tests/                 # Unit + integration tests
+├── Dockerfile             # Multi-stage build for Container Apps
 └── .devpilot.yml          # Sample config (DevPilot eats its own dog food)
 ```
 
@@ -115,23 +134,44 @@ devpilot/
 ## 🚀 Deployment
 
 ### Prerequisites
-- Azure subscription (free tier OK; ~$60–120/mo at full scale)
+- Azure subscription (Free Trial supported via Container Apps mode)
 - Terraform >= 1.6
 - Azure CLI logged in (`az login`)
 - GitHub App registered (see [docs/github-app-setup.md](docs/github-app-setup.md))
 
-### Deploy Azure Infrastructure
-```bash
-cd infra
-terraform init
-terraform plan -var-file=parameters/dev.tfvars
-terraform apply -var-file=parameters/dev.tfvars
+### Deploy to a New Subscription
+
+```powershell
+# 1. Bootstrap Terraform backend
+cd infra/scripts
+.\bootstrap-backend.ps1 -BackendName my-env
+
+# 2. Init + Plan + Apply
+cd ..
+terraform init -backend-config=backends/my-env.tfbackend
+terraform plan  -var-file=parameters/new-tenant-dev.tfvars
+terraform apply -var-file=parameters/new-tenant-dev.tfvars
 ```
 
-### Deploy Functions
-```bash
-cd src/functions
-func azure functionapp publish <function-app-name>
+> **Free Trial subscriptions**: Set `use_container_apps = true` in your tfvars.
+> Container Apps replaces Azure Functions + APIM and has no quota restrictions.
+
+### Deploy via CI/CD (GitHub Actions)
+See [.github/workflows/](/.github/workflows/) — push to `master` auto-applies.
+GitHub Secrets required: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `TF_BACKEND_CONFIG`.
+
+---
+
+## 🌐 Live Deployment
+
+| Tenant | Subscription | Mode |
+|---|---|---|
+| MCAPS (subhashdulla@microsoft.com) | ef71fd3a | Azure Functions + APIM |
+| AI Hackathon (aihackathon26@outlook.com) | 71548670 | Azure Container Apps |
+
+**Webhook URL (AI Hackathon tenant):**
+```
+https://ca-webhook-dev-pbrv5.bluepebble-41adbc9a.eastus2.azurecontainerapps.io/devpilot/webhook
 ```
 
 ---
@@ -140,10 +180,10 @@ func azure functionapp publish <function-app-name>
 
 | Criteria | Weight | DevPilot Strategy |
 |---|---|---|
-| AI Integration & Intelligence Design | 25% | 3 specialized agents — Azure ML + OpenAI + Semantic Kernel |
-| System Architecture & Engineering Quality | 25% | Terraform AVM, Landing Zone principles, event-driven |
+| AI Integration & Intelligence Design | 25% | 3 specialized agents — Azure ML + AI Foundry + Semantic Kernel |
+| System Architecture & Engineering Quality | 25% | Terraform AVM, Landing Zone principles, event-driven, OIDC CI/CD |
 | Communication, Presentation & UX | 15% | 100% GitHub-native UX — no context switching |
-| Prototype Readiness & Scalability | 15% | Fully deployed, IaC, multi-env, demo on live repo |
+| Prototype Readiness & Scalability | 15% | Fully deployed on 2 Azure tenants, IaC, multi-env, live demo |
 | Problem Depth & Product Clarity | 10% | Measurable MTTR reduction, real pain point |
 | Market Understanding & Product Fit | 10% | Clear gap vs Datadog/Harness — actively *acts* |
 
@@ -152,7 +192,7 @@ func azure functionapp publish <function-app-name>
 ## 🧠 AI Tools Disclosure
 
 Per hackathon rules, the following AI tools were used in development:
-- **GitHub Copilot** — Code completion and refactoring
+- **GitHub Copilot** — Code completion, refactoring, and pair programming
 - **Azure OpenAI GPT-4o** — Architecture brainstorming and documentation drafting
 - All architectural decisions, agent design, and core engineering were done by the human team.
 
@@ -162,8 +202,7 @@ Per hackathon rules, the following AI tools were used in development:
 
 | Name | Role |
 |------|------|
-| *Team Member 1* | *Role* |
-| *Team Member 2* | *Role* |
+| Subhash Naidu Dulla | Lead Engineer |
 
 ---
 
