@@ -8,7 +8,8 @@ _credential = None
 def get_credential():
     global _credential
     if _credential is None:
-        if os.getenv("WEBSITE_INSTANCE_ID"):  # running inside Azure Functions
+        # IDENTITY_ENDPOINT is set in Azure Container Apps and Azure Functions
+        if os.getenv("IDENTITY_ENDPOINT") or os.getenv("WEBSITE_INSTANCE_ID"):
             _credential = ManagedIdentityCredential()
         else:
             _credential = DefaultAzureCredential()

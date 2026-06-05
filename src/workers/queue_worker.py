@@ -24,7 +24,7 @@ _running = True
 
 
 def _get_credential():
-    if os.getenv("IDENTITY_ENDPOINT"):  # Managed Identity in Container Apps
+    if os.getenv("IDENTITY_ENDPOINT") or os.getenv("WEBSITE_INSTANCE_ID"):
         return ManagedIdentityCredential()
     return DefaultAzureCredential()
 
