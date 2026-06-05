@@ -209,61 +209,113 @@ module "container_apps" {
 # =============================================================================
 # RBAC — Grant compute managed identity access to dependencies
 # =============================================================================
+# Two modes: Functions (use_container_apps=false) or Container Apps (=true)
+# We avoid for_each over conditional module outputs (unknown at plan time).
+# =============================================================================
 
-locals {
-  # Collect principal IDs from whichever compute module is active
-  compute_principal_ids = var.use_container_apps ? toset([
-    module.container_apps[0].webhook_principal_id,
-    module.container_apps[0].workers_principal_id,
-  ]) : toset([module.functions[0].principal_id])
-}
+# ── Functions mode RBAC (use_container_apps = false) ─────────────────────────
 
-# Compute → Storage (Blob Data Contributor)
 resource "azurerm_role_assignment" "functions_storage" {
-  for_each             = local.compute_principal_ids
+  count                = var.use_container_apps ? 0 : 1
   scope                = module.data.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
-  principal_id         = each.value
+  principal_id         = module.functions[0].principal_id
 }
-
-# Compute → Storage (Queue Data Contributor — needed for Container Apps worker)
-resource "azurerm_role_assignment" "compute_queue" {
-  for_each             = var.use_container_apps ? local.compute_principal_ids : toset([])
-  scope                = module.data.storage_account_id
-  role_definition_name = "Storage Queue Data Contributor"
-  principal_id         = each.value
-}
-
-# Compute → Key Vault (Secrets User)
 resource "azurerm_role_assignment" "functions_kv" {
-  for_each             = local.compute_principal_ids
+  count                = var.use_container_apps ? 0 : 1
   scope                = module.keyvault.id
   role_definition_name = "Key Vault Secrets User"
-  principal_id         = each.value
+  principal_id         = module.functions[0].principal_id
 }
-
-# Compute → App Configuration (Data Reader)
 resource "azurerm_role_assignment" "functions_appcfg" {
-  for_each             = local.compute_principal_ids
+  count                = var.use_container_apps ? 0 : 1
   scope                = module.app_configuration.id
   role_definition_name = "App Configuration Data Reader"
-  principal_id         = each.value
+  principal_id         = module.functions[0].principal_id
 }
-
-# Compute → Azure AI Foundry AI Services (Cognitive Services User)
 resource "azurerm_role_assignment" "functions_openai" {
-  for_each             = local.compute_principal_ids
+  count                = var.use_container_apps ? 0 : 1
   scope                = module.ai_foundry.ai_services_id
   role_definition_name = "Cognitive Services User"
-  principal_id         = each.value
+  principal_id         = module.functions[0].principal_id
 }
-
-# Compute → Cosmos DB (Built-in Data Contributor — data plane role)
-# For multi-principal we use a single assignment on the first principal
 resource "azurerm_cosmosdb_sql_role_assignment" "functions_cosmos" {
+  count               = var.use_container_apps ? 0 : 1
   resource_group_name = module.resource_groups.data_rg_name
   account_name        = module.data.cosmos_name
   role_definition_id  = "${module.data.cosmos_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
   scope               = module.data.cosmos_id
-  principal_id        = tolist(local.compute_principal_ids)[0]
+  principal_id        = module.functions[0].principal_id
+}
+
+# ── Container Apps mode RBAC (use_container_apps = true) ─────────────────────
+# webhook principal
+resource "azurerm_role_assignment" "ca_webhook_storage" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.data.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.container_apps[0].webhook_principal_id
+}
+resource "azurerm_role_assignment" "ca_webhook_queue" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.data.storage_account_id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = module.container_apps[0].webhook_principal_id
+}
+resource "azurerm_role_assignment" "ca_webhook_kv" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.keyvault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = module.container_apps[0].webhook_principal_id
+}
+resource "azurerm_role_assignment" "ca_webhook_appcfg" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.app_configuration.id
+  role_definition_name = "App Configuration Data Reader"
+  principal_id         = module.container_apps[0].webhook_principal_id
+}
+resource "azurerm_role_assignment" "ca_webhook_openai" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.ai_foundry.ai_services_id
+  role_definition_name = "Cognitive Services User"
+  principal_id         = module.container_apps[0].webhook_principal_id
+}
+# workers principal
+resource "azurerm_role_assignment" "ca_workers_storage" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.data.storage_account_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.container_apps[0].workers_principal_id
+}
+resource "azurerm_role_assignment" "ca_workers_queue" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.data.storage_account_id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = module.container_apps[0].workers_principal_id
+}
+resource "azurerm_role_assignment" "ca_workers_kv" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.keyvault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = module.container_apps[0].workers_principal_id
+}
+resource "azurerm_role_assignment" "ca_workers_appcfg" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.app_configuration.id
+  role_definition_name = "App Configuration Data Reader"
+  principal_id         = module.container_apps[0].workers_principal_id
+}
+resource "azurerm_role_assignment" "ca_workers_openai" {
+  count                = var.use_container_apps ? 1 : 0
+  scope                = module.ai_foundry.ai_services_id
+  role_definition_name = "Cognitive Services User"
+  principal_id         = module.container_apps[0].workers_principal_id
+}
+resource "azurerm_cosmosdb_sql_role_assignment" "ca_cosmos" {
+  count               = var.use_container_apps ? 1 : 0
+  resource_group_name = module.resource_groups.data_rg_name
+  account_name        = module.data.cosmos_name
+  role_definition_id  = "${module.data.cosmos_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  scope               = module.data.cosmos_id
+  principal_id        = module.container_apps[0].workers_principal_id
 }
