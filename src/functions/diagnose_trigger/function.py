@@ -51,8 +51,13 @@ async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> 
             diff = get_pr_diff(installation_id, owner, repo, pr_numbers[0])
 
         # ── Run Diagnose agent ────────────────────────────────────────────
-        diagnosis = diagnose(logs=logs, diff=diff, model=model,
-                             max_log_lines=max_lines, include_fix=include_fix)
+        try:
+            diagnosis = diagnose(logs=logs, diff=diff, model=model,
+                                 max_log_lines=max_lines, include_fix=include_fix)
+        except Exception as diag_exc:
+            logger.warning("Diagnose LLM call failed: %s — using fallback", diag_exc)
+            # Graceful fallback: parse logs for common error patterns
+            diagnosis = _fallback_diagnosis(logs, str(diag_exc))
 
         # ── Post PR comment ───────────────────────────────────────────────
         if post_comment and pr_numbers:
@@ -93,3 +98,50 @@ async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> 
 def _fetch_devpilot_yml(installation_id, owner, repo, ref) -> str | None:
     from src.github.content import get_file_content
     return get_file_content(installation_id, owner, repo, ".devpilot.yml", ref)
+
+
+def _fallback_diagnosis(logs: str, error_detail: str) -> dict:
+    """Rule-based fallback when AI model is unavailable.
+
+    Scans log lines for common CI failure patterns and returns a
+    structured diagnosis without calling an LLM.
+    """
+    import re
+    patterns = [
+        (r"error: (.{10,120})",        "Build/compile error"),
+        (r"FAILED\s+(.{10,80})",       "Test failure"),
+        (r"Error: (.{10,120})",        "Runtime error"),
+        (r"npm ERR! (.{10,100})",      "npm error"),
+        (r"ModuleNotFoundError: (.+)", "Missing Python module"),
+        (r"cannot find (.{5,80})",     "Missing resource or file"),
+        (r"exit code (\d+)",           "Non-zero exit code"),
+        (r"TimeoutError|timed out",    "Timeout"),
+        (r"Permission denied",         "Permission error"),
+        (r"Out of memory|OOM",         "Out of memory"),
+    ]
+
+    root_cause = "Pipeline failed — AI diagnosis unavailable (no model deployment)"
+    fix_suggestion = (
+        "Review the workflow logs directly. "
+        f"(AI Foundry model not available: {error_detail[:120]})"
+    )
+
+    for log_line in logs.splitlines()[-200:]:
+        for pattern, label in patterns:
+            m = re.search(pattern, log_line, re.IGNORECASE)
+            if m:
+                matched = m.group(1) if m.lastindex else label
+                root_cause = f"{label}: {matched.strip()[:120]}"
+                fix_suggestion = "Check the workflow logs for the full error context."
+                break
+        else:
+            continue
+        break
+
+    return {
+        "root_cause": root_cause,
+        "fix_suggestion": fix_suggestion,
+        "file": None,
+        "line": None,
+        "confidence": "low",
+    }

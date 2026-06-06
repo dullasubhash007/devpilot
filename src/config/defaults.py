@@ -18,7 +18,7 @@ DEFAULTS = {
     },
     "diagnose": {
         "enabled": True,
-        "model": "gpt-4o-mini",
+        "model": "gpt-4.1-mini",
         "max_log_lines": 500,
         "post_pr_comment": True,
         "include_fix_suggestion": True,

@@ -77,3 +77,9 @@ variable "container_image" {
   type        = string
   default     = "mcr.microsoft.com/devcontainers/python:3.11"
 }
+
+variable "acr_name" {
+  description = "Azure Container Registry name (for AcrPull role assignment)"
+  type        = string
+  default     = ""
+}

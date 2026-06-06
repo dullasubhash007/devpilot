@@ -171,7 +171,7 @@ GitHub Secrets required: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTI
 
 **Webhook URL (AI Hackathon tenant):**
 ```
-https://ca-webhook-dev-pbrv5.bluepebble-41adbc9a.eastus2.azurecontainerapps.io/devpilot/webhook
+https://ca-webhook-dev-pbrv5.orangerock-c9e02b1a.eastus2.azurecontainerapps.io/devpilot/webhook
 ```
 
 ---
@@ -217,3 +217,4 @@ MIT License — see [LICENSE](LICENSE).
 - **Microsoft Build AI Hackathon 2026** for the challenge
 - **Azure Verified Modules (AVM)** team for the IaC foundation
 - The open-source community
+

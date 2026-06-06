@@ -71,7 +71,7 @@ Rules:
 def _build_kernel() -> sk.Kernel:
     kernel = sk.Kernel()
     endpoint = os.environ["AI_FOUNDRY_ENDPOINT"]
-    deployment = os.getenv("AI_FOUNDRY_MODEL_DEPLOYMENT", "gpt-4o-mini")
+    deployment = os.getenv("AI_FOUNDRY_MODEL_DEPLOYMENT", "gpt-4.1-mini")
     kernel.add_service(
         AzureChatCompletion(
             service_id="act",
