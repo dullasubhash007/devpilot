@@ -194,7 +194,7 @@ az appconfig kv set \
 | Resource | Name |
 |---|---|
 | **Subscription** | 71548670-1c08-45be-a4d8-5fccfe411f75 |
-| **Webhook URL** | `https://ca-webhook-dev-pbrv5.bluepebble-41adbc9a.eastus2.azurecontainerapps.io/devpilot/webhook` |
+| **Webhook URL** | `https://ca-webhook-dev-pbrv5.orangerock-c9e02b1a.eastus2.azurecontainerapps.io/devpilot/webhook` |
 | **ACR** | `acrdevpilotdev4056.azurecr.io` |
 | **AI Foundry Hub** | `aih-devpilot-dev-dev-pbrv5` |
 | **AI Foundry Project** | `aip-devpilot-dev-dev-pbrv5` |
@@ -211,7 +211,7 @@ az appconfig kv set \
 
 | Resource | Name |
 |---|---|
-| Webhook URL | `https://ca-webhook-dev-pbrv5.bluepebble-41adbc9a.eastus2.azurecontainerapps.io/devpilot/webhook` |
+| Webhook URL | `https://ca-webhook-dev-pbrv5.orangerock-c9e02b1a.eastus2.azurecontainerapps.io/devpilot/webhook` |
 | ACR | `acrdevpilotdev4056.azurecr.io` |
 | AI Foundry Hub | `aih-devpilot-dev-dev-pbrv5` |
 | AI Foundry Project | `aip-devpilot-dev-dev-pbrv5` |
@@ -245,4 +245,5 @@ az apim deletedservice purge --service-name <name> --location <region>
 ```bash
 az cognitiveservices account purge --name <name> --resource-group rg-devpilot-ai-dev --location <region>
 ```
+
 

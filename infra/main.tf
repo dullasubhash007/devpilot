@@ -243,3 +243,27 @@ resource "azurerm_cosmosdb_sql_role_assignment" "ca_cosmos_webhook" {
   scope               = module.data.cosmos_id
   principal_id        = module.container_apps.webhook_principal_id
 }
+
+# =============================================================================
+# ACR PULL — Grant Container App managed identities pull access to ACR
+# =============================================================================
+
+data "azurerm_container_registry" "acr" {
+  count               = var.acr_name != "" ? 1 : 0
+  name                = var.acr_name
+  resource_group_name = module.resource_groups.ai_rg_name
+}
+
+resource "azurerm_role_assignment" "ca_webhook_acr" {
+  count                = var.acr_name != "" ? 1 : 0
+  scope                = data.azurerm_container_registry.acr[0].id
+  role_definition_name = "AcrPull"
+  principal_id         = module.container_apps.webhook_principal_id
+}
+
+resource "azurerm_role_assignment" "ca_workers_acr" {
+  count                = var.acr_name != "" ? 1 : 0
+  scope                = data.azurerm_container_registry.acr[0].id
+  role_definition_name = "AcrPull"
+  principal_id         = module.container_apps.workers_principal_id
+}
