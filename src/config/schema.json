@@ -30,8 +30,7 @@
             "enabled": { "type": "boolean" },
             "model": {
               "type": "string",
-              "enum": ["gpt-4o-mini", "gpt-4o"],
-              "description": "Azure AI Foundry model deployment name"
+              "description": "Azure AI Foundry model deployment name (e.g. 'diagnose', 'gpt-4o-mini')"
             },
             "max_log_lines": { "type": "integer", "minimum": 50, "maximum": 5000 },
             "post_pr_comment": { "type": "boolean" },
