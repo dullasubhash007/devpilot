@@ -1,0 +1,70 @@
+name: "CI — Lint & Test"
+
+# Runs on every PR and push to master.
+# Lints Python code and runs the full unit test suite.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "requirements*.txt"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r requirements-test.txt
+
+      - name: Lint with ruff
+        run: |
+          pip install ruff --quiet
+          ruff check src/ tests/ --ignore E501,E402
+        continue-on-error: true   # warnings only — don't block PR
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/unit/ \
+            -v \
+            --tb=short \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
+        env:
+          PYTHONPATH: .
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "Unit tests complete — see logs above." >> $GITHUB_STEP_SUMMARY

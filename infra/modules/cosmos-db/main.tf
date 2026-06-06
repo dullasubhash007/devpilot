@@ -17,7 +17,7 @@ variable "serverless" { type = bool }
 variable "storage_rg_id" { type = string }
 variable "tags" { type = map(string) }
 
-# --- Storage account (shared by ML workspace, Functions, raw log storage) ---
+# --- Storage account (shared by ML workspace, Container Apps, raw log storage) ---
 module "storage" {
   source  = "Azure/avm-res-storage-storageaccount/azurerm"
   version = "~> 0.6"
@@ -31,6 +31,13 @@ module "storage" {
   public_network_access_enabled = true
   shared_access_key_enabled     = true
   tags                          = var.tags
+
+  # Allow all network traffic — Container Apps access queues via managed identity.
+  # The AVM module default is Deny which blocks Container App queue operations.
+  network_rules = {
+    default_action = "Allow"
+    bypass         = ["AzureServices"]
+  }
 
   containers = {
     pipeline_logs = { name = "pipeline-logs", container_access_type = "private" }

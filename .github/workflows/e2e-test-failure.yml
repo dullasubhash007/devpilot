@@ -1,0 +1,44 @@
+name: "DevPilot E2E Test — Intentional Failure"
+
+# This workflow is designed to FAIL intentionally so that DevPilot's
+# Diagnose and Act agents can be verified end-to-end.
+# Triggered manually or on test branches.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "test/e2e-*"
+      - "test/diagnose-*"
+
+jobs:
+  failing-job:
+    name: Intentional Failure (DevPilot Diagnose Test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests (will fail — missing env vars)
+        run: |
+          echo "=== Starting test run ==="
+          echo "PYTHONPATH=$PYTHONPATH"
+          python -m pytest tests/unit/ -v
+          # This will fail because AI_FOUNDRY_ENDPOINT is not set
+          python -c "import os; os.environ['AI_FOUNDRY_ENDPOINT']"
+        env:
+          PYTHONPATH: .
+
+      - name: Simulate deployment failure
+        run: |
+          echo "Attempting deployment..."
+          # Intentional failure: invalid command
+          docker run --rm nonexistent-image:latest || exit 1

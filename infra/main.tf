@@ -234,3 +234,12 @@ resource "azurerm_cosmosdb_sql_role_assignment" "ca_cosmos" {
   scope               = module.data.cosmos_id
   principal_id        = module.container_apps.workers_principal_id
 }
+
+# Webhook → Cosmos DB (read results written by workers)
+resource "azurerm_cosmosdb_sql_role_assignment" "ca_cosmos_webhook" {
+  resource_group_name = module.resource_groups.data_rg_name
+  account_name        = module.data.cosmos_name
+  role_definition_id  = "${module.data.cosmos_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  scope               = module.data.cosmos_id
+  principal_id        = module.container_apps.webhook_principal_id
+}
