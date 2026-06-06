@@ -63,6 +63,12 @@ resource "azurerm_container_app" "webhook" {
   revision_mode                = "Single"
   tags                         = var.tags
 
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "30m"
+  }
+
   identity {
     type = "SystemAssigned"
   }
@@ -145,6 +151,12 @@ resource "azurerm_container_app" "workers" {
   container_app_environment_id = azurerm_container_app_environment.this.id
   revision_mode                = "Single"
   tags                         = var.tags
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "30m"
+  }
 
   identity {
     type = "SystemAssigned"
