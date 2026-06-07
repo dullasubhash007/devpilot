@@ -1,11 +1,9 @@
-﻿"""Act Agent â€” autonomous actions via Azure AI Foundry.
+﻿"""Act Agent - autonomous actions via Azure AI Foundry.
 
 Given the Predict score and Diagnose output, the Act agent decides:
-  â€¢ Whether to create a GitHub Issue with the diagnosis
-  â€¢ Whether to recommend a deploy strategy (rolling / canary / blue-green)
-  â€¢ Whether to adjust quality gates (only when auto_adjust_gates=True)
-
-All decisions are recorded in Cosmos DB and surfaced in the PR comment.
+  - Whether to create a GitHub Issue with the diagnosis
+  - Whether to recommend a deploy strategy (rolling / canary / blue-green)
+  - Whether to adjust quality gates (only when auto_adjust_gates=True)
 """
 import json
 import os
@@ -63,7 +61,7 @@ Rules:
 - Recommend "canary" or "blue-green" only when score > 70.
 - Recommend "rolling" when score is 40-70.
 - Return null for deploy_strategy when score < 40.
-- Be conservative â€” prefer null over a questionable recommendation.
+- Be conservative - prefer null over a questionable recommendation.
 """
 
 
@@ -85,7 +83,6 @@ async def act(inp: ActInput) -> ActOutput:
     output = ActOutput()
     act_cfg = inp.config.get("act", {})
 
-    # --- Decision via Azure AI Foundry (direct OpenAI client) ---
     prompt = DECISION_PROMPT.format(
         owner=inp.owner,
         repo=inp.repo,
@@ -112,13 +109,12 @@ async def act(inp: ActInput) -> ActOutput:
         decision = json.loads(raw)
         logger.info("Act decision: %s", decision)
     except Exception as exc:
-        logger.warning("Act LLM call failed: %s â€” using rule-based fallback", exc)
+        logger.warning("Act LLM call failed: %s -- using rule-based fallback", exc)
         decision = _rule_based_decision(inp.predict_score)
 
     output.reasoning = decision.get("reasoning", "")
     output.deploy_strategy = decision.get("deploy_strategy")
 
-    # --- Execute actions ---
     if act_cfg.get("auto_create_issue", True):
         issue = await _create_issue(inp)
         if issue:
@@ -140,23 +136,17 @@ async def act(inp: ActInput) -> ActOutput:
 def _rule_based_decision(score: int) -> dict:
     """Fallback when LLM is unavailable."""
     if score >= 80:
-        strategy = "canary"
-        reasoning = f"Risk score {score} is high â€” canary deployment recommended to limit blast radius."
+        strategy, reason = "canary", f"Risk score {score} is high - canary deployment recommended."
     elif score >= 50:
-        strategy = "rolling"
-        reasoning = f"Risk score {score} is medium â€” rolling deployment recommended."
+        strategy, reason = "rolling", f"Risk score {score} is medium - rolling deployment recommended."
     else:
-        strategy = None
-        reasoning = f"Risk score {score} is low â€” standard deployment is fine."
-    return {"deploy_strategy": strategy, "adjust_gate_to": None, "reasoning": reasoning}
+        strategy, reason = None, f"Risk score {score} is low - standard deployment is fine."
+    return {"deploy_strategy": strategy, "adjust_gate_to": None, "reasoning": reason}
 
 
 async def _create_issue(inp: ActInput) -> dict | None:
     from src.github.issues import create_issue
-    title = (
-        f"[DevPilot] Pipeline failure on PR #{inp.pr_number} "
-        f"(risk {inp.predict_score}/100)"
-    )
+    title = f"[DevPilot] Pipeline failure on PR #{inp.pr_number} (risk {inp.predict_score}/100)"
     body = _issue_body(inp)
     try:
         return create_issue(
@@ -173,14 +163,13 @@ async def _create_issue(inp: ActInput) -> dict | None:
 
 def _issue_body(inp: ActInput) -> str:
     d = inp.diagnosis
-    deploy_section = f"\n### Recommended Deploy Strategy\n{inp.config.get('act', {}).get('suggest_deploy_strategy', 'rolling')}" if d else ""
     file_section = ""
     if d.get("file"):
         loc = d["file"]
         if d.get("line"):
             loc += f":{d['line']}"
         file_section = f"\n\n**Location**: `{loc}`"
-    return f"""## ðŸ¤– DevPilot Auto-Generated Issue
+    return f"""## DevPilot Auto-Generated Issue
 
 **PR**: #{inp.pr_number}
 **Risk Score**: {inp.predict_score}/100 ({inp.predict_label})
@@ -193,22 +182,16 @@ def _issue_body(inp: ActInput) -> str:
 {d.get('fix_suggestion', '_No suggestion._')}
 
 ---
-<sub>Created automatically by DevPilot Act Agent Â· Powered by Azure AI Foundry</sub>
+<sub>Created automatically by DevPilot Act Agent - Powered by Azure AI Foundry</sub>
 """
 
 
 def format_act_summary(output: ActOutput) -> str:
     if not output.actions_taken:
         return ""
-    lines = ["## ðŸ¤– DevPilot Actions", ""]
+    lines = ["## DevPilot Actions", ""]
     for action in output.actions_taken:
         lines.append(f"- {action}")
     if output.reasoning:
         lines += ["", f"_{output.reasoning}_"]
     return "\n".join(lines)
-
-
-logger = get_logger(__name__)
-
-
-@dataclass
