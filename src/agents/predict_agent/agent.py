@@ -67,18 +67,22 @@ def extract_features(
 def _score_heuristic(features: PredictFeatures) -> int:
     """Fallback heuristic scorer when the ML endpoint is unavailable."""
     score = 0.0
-    # diff size: 0–40 pts
-    if features.diff_size > 1000:
+    # diff size: 0–40 pts (lowered thresholds to catch more realistic PRs)
+    if features.diff_size > 500:
         score += 40
-    elif features.diff_size > 300:
-        score += 20
-    elif features.diff_size > 50:
-        score += 10
-    # files changed: 0–20 pts
-    if features.files_changed > 20:
-        score += 20
+    elif features.diff_size > 100:
+        score += 25
+    elif features.diff_size > 30:
+        score += 15
+    elif features.diff_size > 10:
+        score += 8
+    # files changed: 0–25 pts
+    if features.files_changed > 15:
+        score += 25
     elif features.files_changed > 5:
-        score += 10
+        score += 15
+    elif features.files_changed > 2:
+        score += 8
     # test history: low pass rate → up to 20 pts
     score += max(0, (1.0 - features.test_history) * 20)
     # author failure history: up to 15 pts
