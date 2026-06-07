@@ -48,7 +48,7 @@
 | Mode | Compute | Use When |
 |---|---|---|
 | **Container Apps** (default new tenants) | 2× Container Apps | Free Trial / any subscription — no App Service quota needed |
-| **Azure Functions** (MCAPS tenant) | Azure Functions + APIM | Pay-As-You-Go subscription with App Service quota |
+
 
 Toggle via `use_container_apps = true/false` in tfvars.
 
