@@ -23,6 +23,11 @@ bp = func.Blueprint()
 @bp.queue_trigger(arg_name="msg", queue_name="act-jobs", connection="AzureWebJobsStorage")
 async def act_trigger(msg: func.QueueMessage) -> None:
     job = json.loads(msg.get_body().decode())
+    await _run_act(job)
+
+
+async def _run_act(job: dict) -> None:
+    """Core act logic — callable from both Azure Functions and queue_worker."""
     logger.info("act_trigger: run %s in %s/%s", job.get("run_id"), job.get("owner"), job.get("repo"))
 
     owner = job["owner"]

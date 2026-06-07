@@ -64,6 +64,19 @@ async def webhook(request: Request):
     if event in ("push", "pull_request"):
         pr = payload.get("pull_request", {})
         if pr or event == "push":
+            # Compute approximate branch age from PR creation date vs base push
+            branch_age_days = 0
+            if pr.get("created_at") and pr.get("base", {}).get("repo", {}).get("pushed_at"):
+                try:
+                    from datetime import datetime, timezone
+                    created = datetime.fromisoformat(pr["created_at"].replace("Z", "+00:00"))
+                    base_pushed = datetime.fromisoformat(
+                        pr["base"]["repo"]["pushed_at"].replace("Z", "+00:00")
+                    )
+                    branch_age_days = max(0, (created - base_pushed).days)
+                except Exception:
+                    pass
+
             job = {
                 "event": event,
                 "delivery_id": delivery_id,
@@ -75,6 +88,10 @@ async def webhook(request: Request):
                 "base_sha": pr.get("base", {}).get("sha") or payload.get("before"),
                 "sender": payload.get("sender", {}).get("login"),
                 "ref": payload.get("ref"),
+                "branch_age_days": branch_age_days,
+                "pr_additions": pr.get("additions", 0),
+                "pr_deletions": pr.get("deletions", 0),
+                "pr_changed_files": pr.get("changed_files", 0),
             }
             _enqueue("predict-jobs", job)
 
