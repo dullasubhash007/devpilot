@@ -69,8 +69,8 @@ def test_extract_features_branch_age():
 # ── _score_heuristic ──────────────────────────────────────────────────────────
 
 def test_heuristic_small_change_low_score():
-    f = PredictFeatures(diff_size=10, files_changed=1)
-    assert _score_heuristic(f) < 40
+    f = PredictFeatures(diff_size=5, files_changed=1)
+    assert _score_heuristic(f) < 20
 
 
 def test_heuristic_large_diff_high_score():
