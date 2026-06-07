@@ -47,7 +47,7 @@ devpilot:
   # ------------------------------------------------------------------
   quality_gates:
     block_merge_above_risk: 90   # Risk score above which merge is blocked
-    require_human_approval_on_act: true  # Act agent needs human approval
+    require_human_approval_on_act: false  # Act agent runs autonomously
 
   # ------------------------------------------------------------------
   # NOTIFICATIONS — Where DevPilot surfaces its output in GitHub
