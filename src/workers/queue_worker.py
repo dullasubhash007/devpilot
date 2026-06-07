@@ -44,34 +44,22 @@ def _decode(msg: QueueMessage) -> dict:
 
 
 async def _process_predict(job: dict) -> None:
-    from src.functions.predict_trigger.function import predict_trigger as _fn
-    import azure.functions as func
-    # Wrap dict as a QueueMessage-like object for the handler
-    class FakeMsg:
-        def get_body(self): return json.dumps(job).encode()
-    await _fn(FakeMsg())
+    from src.functions.predict_trigger.function import _run_predict
+    await _run_predict(job)
 
 
 async def _process_diagnose(job: dict) -> None:
-    from src.functions.diagnose_trigger.function import diagnose_trigger as _fn
-    class FakeOut:
-        _val = None
-        def set(self, v): self._val = v
-    out = FakeOut()
-    class FakeMsg:
-        def get_body(self): return json.dumps(job).encode()
-    await _fn(FakeMsg(), out)
-    if out._val:
+    from src.functions.diagnose_trigger.function import _run_diagnose
+    act_job = await _run_diagnose(job)
+    if act_job:
         svc = _queue_service()
         q = svc.get_queue_client("act-jobs")
-        q.send_message(base64.b64encode(out._val.encode()).decode())
+        q.send_message(base64.b64encode(json.dumps(act_job).encode()).decode())
 
 
 async def _process_act(job: dict) -> None:
-    from src.functions.act_trigger.function import act_trigger as _fn
-    class FakeMsg:
-        def get_body(self): return json.dumps(job).encode()
-    await _fn(FakeMsg())
+    from src.functions.act_trigger.function import _run_act
+    await _run_act(job)
 
 
 HANDLERS = {

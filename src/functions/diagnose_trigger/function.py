@@ -24,6 +24,13 @@ bp = func.Blueprint()
 @bp.queue_output(arg_name="act_queue", queue_name="act-jobs", connection="AzureWebJobsStorage")
 async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> None:
     job = json.loads(msg.get_body().decode())
+    act_job = await _run_diagnose(job)
+    if act_job:
+        act_queue.set(json.dumps(act_job))
+
+
+async def _run_diagnose(job: dict) -> dict | None:
+    """Core diagnose logic — returns act_job dict or None. Callable from worker."""
     logger.info("diagnose_trigger: run %s in %s/%s", job.get("run_id"), job.get("owner"), job.get("repo"))
 
     installation_id = job["installation_id"]
@@ -35,13 +42,12 @@ async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> 
     pr_numbers: list[int] = job.get("pr_numbers", [])
 
     try:
-        # ── Fetch logs & config ───────────────────────────────────────────
         repo_yaml = _fetch_devpilot_yml(installation_id, owner, repo, head_sha)
         cfg = load_config(repo_yaml)
         diagnose_cfg = cfg.get("diagnose", {})
 
         max_lines = diagnose_cfg.get("max_log_lines", 500)
-        model = diagnose_cfg.get("model", "gpt-4o-mini")
+        model = diagnose_cfg.get("model", "gpt-4.1-mini")
         include_fix = diagnose_cfg.get("include_fix_suggestion", True)
         post_comment = diagnose_cfg.get("post_pr_comment", True)
 
@@ -50,23 +56,19 @@ async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> 
         if pr_numbers:
             diff = get_pr_diff(installation_id, owner, repo, pr_numbers[0])
 
-        # ── Run Diagnose agent ────────────────────────────────────────────
         try:
             diagnosis = diagnose(logs=logs, diff=diff, model=model,
                                  max_log_lines=max_lines, include_fix=include_fix)
         except Exception as diag_exc:
             logger.warning("Diagnose LLM call failed: %s — using fallback", diag_exc)
-            # Graceful fallback: parse logs for common error patterns
             diagnosis = _fallback_diagnosis(logs, str(diag_exc))
 
-        # ── Post PR comment ───────────────────────────────────────────────
         if post_comment and pr_numbers:
             comment_body = format_pr_comment(diagnosis, run_url)
             for pr_number in pr_numbers:
                 post_pr_comment(installation_id, owner, repo, pr_number, comment_body)
                 logger.info("Posted diagnosis comment on PR #%s", pr_number)
 
-        # ── Persist ───────────────────────────────────────────────────────
         run_key = f"{owner}-{repo}-run{run_id}"
         await upsert_run(run_key, {
             "type": "diagnose",
@@ -76,7 +78,6 @@ async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> 
             "diagnosis": diagnosis,
         })
 
-        # ── Enqueue act job ───────────────────────────────────────────────
         act_job = {
             "owner": owner,
             "repo": repo,
@@ -88,11 +89,12 @@ async def diagnose_trigger(msg: func.QueueMessage, act_queue: func.Out[str]) -> 
             "diagnosis": diagnosis,
             "run_key": run_key,
         }
-        act_queue.set(json.dumps(act_job))
         logger.info("Enqueued act job for run %s", run_id)
+        return act_job
 
     except Exception as exc:
         logger.exception("diagnose_trigger failed for run %s: %s", run_id, exc)
+        return None
 
 
 def _fetch_devpilot_yml(installation_id, owner, repo, ref) -> str | None:

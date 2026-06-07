@@ -23,6 +23,11 @@ bp = func.Blueprint()
 @bp.queue_trigger(arg_name="msg", queue_name="predict-jobs", connection="AzureWebJobsStorage")
 async def predict_trigger(msg: func.QueueMessage) -> None:
     job = json.loads(msg.get_body().decode())
+    await _run_predict(job)
+
+
+async def _run_predict(job: dict) -> None:
+    """Core predict logic — callable from both Azure Functions and queue_worker."""
     logger.info("predict_trigger: PR #%s in %s/%s", job.get("pr_number"), job.get("owner"), job.get("repo"))
 
     installation_id = job["installation_id"]
@@ -30,7 +35,6 @@ async def predict_trigger(msg: func.QueueMessage) -> None:
     repo = job["repo"]
     pr_number = job.get("pr_number")
     head_sha = job["head_sha"]
-    sender = job.get("sender", "")
 
     if not pr_number or not head_sha:
         logger.warning("predict_trigger: missing pr_number or head_sha, skipping")
@@ -51,13 +55,38 @@ async def predict_trigger(msg: func.QueueMessage) -> None:
 
     try:
         # ── Fetch diff & config ───────────────────────────────────────────
-        diff = get_pr_diff(installation_id, owner, repo, pr_number)
+        diff = ""
+        try:
+            diff = get_pr_diff(installation_id, owner, repo, pr_number)
+        except Exception as diff_exc:
+            logger.warning("Could not fetch PR diff: %s — scoring with empty diff", diff_exc)
+
         repo_yaml = _fetch_devpilot_yml(installation_id, owner, repo, head_sha)
         cfg = load_config(repo_yaml)
         predict_cfg = cfg.get("predict", {})
 
         # ── Feature extraction ────────────────────────────────────────────
+        # Prefer PR metadata from webhook payload (more accurate than diff parsing)
+        pr_additions = job.get("pr_additions", 0)
+        pr_deletions = job.get("pr_deletions", 0)
+        pr_changed_files = job.get("pr_changed_files", 0)
+        branch_age_days = job.get("branch_age_days", 0)
+
         features = extract_features(diff=diff)
+
+        # Override with accurate PR metadata when available
+        if pr_additions or pr_deletions:
+            features.diff_size = pr_additions + pr_deletions
+        if pr_changed_files:
+            features.files_changed = pr_changed_files
+        if branch_age_days:
+            features.branch_age = branch_age_days
+
+        logger.info(
+            "Predict features: diff_size=%d files=%d branch_age=%d",
+            features.diff_size, features.files_changed, features.branch_age
+        )
+
         result = predict(features, enabled_features=predict_cfg.get("features"))
 
         failure_threshold = predict_cfg.get("failure_threshold", 70)
