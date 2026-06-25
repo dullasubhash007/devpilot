@@ -97,18 +97,40 @@ async def webhook(request: Request):
 
     elif event == "workflow_run":
         run = payload.get("workflow_run", {})
+        owner = payload.get("repository", {}).get("owner", {}).get("login")
+        repo = payload.get("repository", {}).get("name")
+        installation_id = payload.get("installation", {}).get("id")
+
+        if payload.get("action") == "completed" and run.get("conclusion"):
+            _enqueue(
+                "predict-jobs",
+                {
+                    "event": event,
+                    "kind": "outcome",
+                    "delivery_id": delivery_id,
+                    "installation_id": installation_id,
+                    "owner": owner,
+                    "repo": repo,
+                    "head_sha": run.get("head_sha"),
+                    "run_id": run.get("id"),
+                    "conclusion": run.get("conclusion"),
+                },
+            )
+
         if run.get("conclusion") == "failure":
-            job = {
-                "event": event,
-                "delivery_id": delivery_id,
-                "installation_id": payload.get("installation", {}).get("id"),
-                "owner": payload.get("repository", {}).get("owner", {}).get("login"),
-                "repo": payload.get("repository", {}).get("name"),
-                "run_id": run.get("id"),
-                "run_url": run.get("html_url"),
-                "head_sha": run.get("head_sha"),
-                "pr_numbers": [pr["number"] for pr in run.get("pull_requests", [])],
-            }
-            _enqueue("diagnose-jobs", job)
+            _enqueue(
+                "diagnose-jobs",
+                {
+                    "event": event,
+                    "delivery_id": delivery_id,
+                    "installation_id": installation_id,
+                    "owner": owner,
+                    "repo": repo,
+                    "run_id": run.get("id"),
+                    "run_url": run.get("html_url"),
+                    "head_sha": run.get("head_sha"),
+                    "pr_numbers": [pr["number"] for pr in run.get("pull_requests", [])],
+                },
+            )
 
     return Response(content="OK", status_code=200)
